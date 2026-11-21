@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#256b4e">
+<meta name="application-name" content="木片每车测算">
+<title>木片每车测算</title>
+<script>
+/* 手机浏览器打开自动切到移动版。只在 http/https 下生效，本地双击打开不受影响；
+   带 ?pc=1 强制留在完整版；mobile.html 不存在时保持原样。 */
+(function(){
+  try{
+    if(!/^https?:$/.test(location.protocol)) return;
+    if(location.search.indexOf('pc=1')>-1) return;
+    if(/mobile\.html$/i.test(location.pathname)) return;
+    var w=Math.min(screen.width||999,screen.height||999);
+    var ua=navigator.userAgent;
+    var phone=w<720 || /iPhone|iPod|Android.*Mobile|Mobile.*Android|Windows Phone|HarmonyOS/i.test(ua);
+    if(!phone) return;
+    fetch('mobile.html',{method:'HEAD'}).then(function(r){
+      if(r && r.ok) location.replace('mobile.html');
+    }).catch(function(){});
+  }catch(e){}
+})();
+</script>
+<style>
+:root{
+  --bg:#f4f6f2; --card:#ffffff; --ink:#1b201c; --muted:#6c746a;
+  --line:#e3e7df; --line2:#eef1ec;
+  --p:#256b4e; --p-hover:#1d573f; --p-soft:#eaf2ec;
+  --warn:#8a6d00; --warn-bg:#fdf6e3; --warn-line:#f0e2b8;
+  --dang:#b3261e; --dang-bg:#fdecea; --dang-line:#f5c9c5;
+  --shadow:0 1px 2px rgba(20,30,22,.05), 0 8px 24px rgba(20,30,22,.05);
+  --r:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+  font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:16px}
+
+/* ---------- header ---------- */
+.app-header{
+  background:linear-gradient(180deg,#2a7254 0%,#256b4e 100%);
+  color:#fff; padding:18px 20px 16px;
+}
+.hwrap{max-width:1120px;margin:0 auto;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.app-header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:.2px}
+.app-header .sub{font-size:12.5px;opacity:.82;margin:2px 0 0}
+.app-header .ver{margin-left:auto;font-size:11.5px;opacity:.7}
+
+/* ---------- tabs ---------- */
+.tabs{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.tabs-in{max-width:1120px;margin:0 auto;display:flex;overflow-x:auto;scrollbar-width:none}
+.tabs-in::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;padding:12px 18px;border:0;background:none;color:var(--muted);
+  font-size:14.5px;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap;
+}
+.tab.on{color:var(--p);border-bottom-color:var(--p);font-weight:600}
+
+main{max-width:1120px;margin:0 auto;padding:18px 16px 90px}
+.view{display:none}
+.view.on{display:block}
+
+/* ---------- cards / layout ---------- */
+.calc-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+@media(max-width:940px){.calc-grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card + .card{margin-top:14px}
+.card-h{padding:13px 16px 0;font-size:13px;font-weight:650;color:var(--p);letter-spacing:.4px}
+.card-b{padding:14px 16px 16px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:560px){.grid2,.grid3{grid-template-columns:1fr 1fr}
+  .grid3 .full,.grid2 .full{grid-column:1/-1}}
+
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:12.5px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:4px}
+.field label .tag{font-size:10.5px;background:var(--line2);color:var(--muted);padding:0 5px;border-radius:4px}
+.field input,.field select{
+  width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+  background:#fcfdfb;color:var(--ink);outline:none;transition:.15s;
+}
+.field input:focus,.field select:focus{border-color:var(--p);background:#fff;box-shadow:0 0 0 3px var(--p-soft)}
+.field .hint{font-size:11px;color:var(--muted);line-height:1.4}
+.unit{position:relative}
+.unit input{padding-right:42px}
+.unit span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11.5px;color:var(--muted);pointer-events:none}
+
+.seg{display:flex;background:var(--line2);border-radius:8px;padding:3px;gap:2px}
+.seg button{flex:1;border:0;background:none;padding:7px 4px;border-radius:6px;font-size:13px;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--p);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+.actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 16px;border-radius:9px;font-weight:550;font-size:14.5px}
+.btn:hover{background:#fafbf9}
+.btn.primary{background:var(--p);border-color:var(--p);color:#fff}
+.btn.primary:hover{background:var(--p-hover)}
+.btn.ghost{color:var(--muted)}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:7px}
+.btn.danger{color:var(--dang);border-color:var(--dang-line)}
+
+/* ---------- 基础档案：点选与编辑 ---------- */
+.combo{position:relative}
+.combo input{padding-right:34px}
+.combo .pk{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:28px;height:28px;
+  border:0;background:transparent;color:#7c847a;font-size:12px;line-height:1;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.combo .pk::after{content:"";display:block;width:0;height:0;
+  border-left:4.5px solid transparent;border-right:4.5px solid transparent;border-top:5px solid currentColor}
+.combo .pk:hover,.combo .pk:active{background:var(--p-soft);color:var(--p)}
+/* 带 list 属性的输入框，Chromium 会自绘一个下拉箭头，与右侧 ▾ 重叠，这里隐掉 */
+.combo input[list]::-webkit-calendar-picker-indicator{display:none!important;opacity:0;width:0;height:0;margin:0;padding:0}
+.combo input[list]::-webkit-inner-spin-button,.combo input[list]::-webkit-clear-button{display:none!important}
+
+.dict-row{padding:13px 0;border-top:1px solid var(--line2)}
+.dict-row:first-child{border-top:0;padding-top:2px}
+.dict-h{font-size:12.5px;font-weight:600;color:var(--p);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.dict-h .cnt{font-weight:400;color:var(--muted);font-size:11.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--p-soft);color:#1e5442;
+  border-radius:999px;padding:4px 5px 4px 11px;font-size:12.5px;max-width:100%}
+.chip .x{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;
+  border-radius:50%;background:#fff;color:var(--muted);font-size:12px;line-height:1;cursor:pointer;flex:0 0 auto}
+.chip .x:hover{background:var(--dang-bg);color:var(--dang)}
+.chip-empty{font-size:12px;color:var(--muted);padding:2px 0}
+.dict-add{display:flex;gap:8px}
+.dict-add input{flex:1 1 auto;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;
+  background:#fcfdfb;color:var(--ink);outline:none;font-size:14px}
+.dict-add input:focus{border-color:var(--p);background:#fff;box-shadow:0 0 0 3px var(--p-soft)}
+
+.picker{position:fixed;inset:0;background:rgba(20,28,22,.38);display:none;align-items:flex-end;z-index:80}
+.picker.on{display:flex}
+.picker-b{background:#fff;width:100%;max-height:74vh;overflow:auto;border-radius:16px 16px 0 0;
+  padding:14px 14px calc(16px + env(safe-area-inset-bottom))}
+.picker-h{font-size:13px;font-weight:600;color:var(--p);padding:2px 4px 10px}
+.pi{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:8px;font-size:14px;background:#fff}
+.pi:active{background:var(--p-soft)}
+.pi .pi-x{color:#b4b2a9;font-size:18px;line-height:1;flex:0 0 auto}
+.pi.empty{color:var(--muted);font-size:13px;justify-content:flex-start}
+
+/* ---------- results ---------- */
+.res-col{position:sticky;top:64px}
+@media(max-width:940px){.res-col{position:static}}
+.hero{padding:18px 18px 16px;border-radius:var(--r);background:linear-gradient(160deg,#276b4f,#1d5540);color:#fff;box-shadow:var(--shadow)}
+.hero .cap{font-size:12px;opacity:.8;letter-spacing:.5px}
+.hero .big{font-size:38px;font-weight:680;line-height:1.15;margin:2px 0 0;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.hero .big small{font-size:16px;font-weight:500;opacity:.8;margin-right:2px}
+.hero .row{display:flex;gap:18px;margin-top:10px;font-size:12.5px;opacity:.9;flex-wrap:wrap}
+.hero.loss{background:linear-gradient(160deg,#a8332b,#8a231c)}
+
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:10px;overflow:hidden;margin-top:12px}
+.kpi{background:#fff;padding:10px 12px}
+.kpi .k{font-size:11.5px;color:var(--muted)}
+.kpi .v{font-size:16px;font-weight:620;font-variant-numeric:tabular-nums;margin-top:1px}
+.kpi .v small{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}
+
+.sec-t{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.4px;margin:16px 0 6px}
+.rows{border-top:1px solid var(--line2)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:13.5px}
+.row .l{color:var(--muted);flex:1 1 auto;min-width:0}
+.row .r{font-variant-numeric:tabular-nums;font-weight:550;flex:0 0 auto}
+.row.sum .l{color:var(--ink);font-weight:600}
+.row.sum .r{font-weight:650}
+
+.alert{margin-top:12px;padding:10px 12px;border-radius:9px;font-size:13px;border:1px solid}
+.alert.w{background:var(--warn-bg);border-color:var(--warn-line);color:#6b5400}
+.alert.d{background:var(--dang-bg);border-color:var(--dang-line);color:#8a1c15}
+.alert.g{background:var(--p-soft);border-color:#cfe0d5;color:#1d5540}
+.alert b{font-weight:650}
+.alert + .alert{margin-top:8px}
+
+.mini{display:none}
+@media(max-width:940px){
+  .mini{display:flex;position:sticky;top:45px;z-index:15;background:rgba(255,255,255,.97);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:-18px -16px 14px;
+    padding:9px 16px;align-items:center;gap:16px}
+  .mini .m{display:flex;flex-direction:column;line-height:1.2}
+  .mini .m span{font-size:10.5px;color:var(--muted)}
+  .mini .m b{font-size:17px;font-variant-numeric:tabular-nums}
+  .mini .m b.neg{color:var(--dang)}
+}
+
+/* ---------- records ---------- */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar .sp{flex:1}
+.search{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:160px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line2);white-space:nowrap}
+th{background:#fafbf8;font-weight:600;font-size:12.5px;color:var(--muted);position:sticky;top:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#fafcf9;cursor:pointer}
+tbody tr:last-child td{border-bottom:0}
+.pos{color:var(--p)} .neg{color:var(--dang)}
+.empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:13.5px}
+
+/* ---------- summary ---------- */
+.sumhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+select.pick{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.chart{padding:12px 8px 4px}
+.bars{display:flex;align-items:flex-end;gap:14px;height:170px;padding:0 6px;border-bottom:1px solid var(--line)}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:0}
+.bar .bx{width:100%;max-width:64px;background:linear-gradient(180deg,#3b8a68,#256b4e);border-radius:5px 5px 0 0;min-height:2px}
+.bar .bv{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.bar .bl{font-size:11px;color:var(--muted);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+
+/* ---------- settings ---------- */
+.note{font-size:12.5px;color:var(--muted);background:#fafbf8;border:1px dashed var(--line);border-radius:9px;padding:10px 12px;margin-top:10px}
+
+/* ---------- print receipt ---------- */
+#receipt{display:none;font-size:12px;color:#000}
+#receipt h2{font-size:17px;text-align:center;margin:0 0 4px}
+#receipt .rc-sub{text-align:center;font-size:11px;color:#444;margin-bottom:10px}
+#receipt table{width:100%;border-collapse:collapse;font-size:12px}
+#receipt td{padding:4px 6px;border-bottom:1px solid #ddd;white-space:normal}
+#receipt td.k{color:#444;width:42%}
+#receipt td.v{text-align:right;font-variant-numeric:tabular-nums}
+#receipt .rc-foot{margin-top:14px;font-size:11px;color:#555;line-height:1.7}
+@media print{
+  body{background:#fff}
+  .app-header,.tabs,main,#toast{display:none!important}
+  #receipt{display:block!important;padding:6mm}
+}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;bottom:80px;transform:translate(-50%,20px);background:#222824;color:#fff;
+  padding:10px 18px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:640px){main{padding-bottom:80px}}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="hwrap">
+    <div>
+      <h1>木片每车测算</h1>
+      <p class="sub">一车一档 · 湿吨折绝干 · 票税同算</p>
+    </div>
+    <div class="ver">v1.0 · 数据仅存本机</div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tabs-in">
+    <button class="tab on" data-view="calc">每车测算</button>
+    <button class="tab" data-view="records">记录</button>
+    <button class="tab" data-view="summary">汇总</button>
+    <button class="tab" data-view="settings">参数</button>
+  </div>
+</nav>
+
+<main>
+  <!-- ============ 每车测算 ============ -->
+  <section class="view on" id="view-calc">
+    <div class="mini">
+      <div class="m"><span>本车净利</span><b id="miniNet">—</b></div>
+      <div class="m"><span>每绝干吨</span><b id="miniPer">—</b></div>
+      <div class="m"><span>绝干吨</span><b id="miniDry">—</b></div>
+    </div>
+
+    <div class="calc-grid">
+      <div class="form-col">
+
+        <div class="card">
+          <div class="card-h">① 车辆与交易</div>
+          <div class="card-b">
+            <div class="grid3">
+              <div class="field"><label>日期</label><input type="date" id="date"></div>
+              <div class="field"><label>车号</label>
+                <div class="combo"><input type="text" id="plate" list="dlPlate" placeholder="如 辽A12345"><button class="pk" data-pick="plate" title="从档案选择" aria-label="从档案选择"></button></div>
+              </div>
+              <div class="field"><label>模式</label>
+                <select id="mode">
+                  <option value="1">1 到场价（厂送）</option>
+                  <option value="2">2 自找车（车板价）</option>
+                  <option value="3">3 原木+委托加工</option>
+                </select>
+              </div>
+              <div class="field"><label>供应商</label>
+                <div class="combo"><input type="text" id="supplier" list="dlSup" placeholder="木片厂/原木商"><button class="pk" data-pick="supplier" title="从档案选择" aria-label="从档案选择"></button></div>
+              </div>
+              <div class="field"><label>纸厂</label>
+                <div class="combo"><input type="text" id="mill" list="dlMill" placeholder="收货纸厂"><button class="pk" data-pick="mill" title="从档案选择" aria-label="从档案选择"></button></div>
+              </div>
+              <div class="field" id="fTicket"><label>上游票种</label>
+                <select id="ticket">
+                  <option value="13">13% 专票</option>
+                  <option value="3">3% 专票（小规模放弃减税）</option>
+                  <option value="1">1% 专票（小规模减征）</option>
+                </select>
+              </div>
+            </div>
+            <datalist id="dlSup"></datalist>
+            <datalist id="dlMill"></datalist>
+            <datalist id="dlPlate"></datalist>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">② 计量与水分</div>
+          <div class="card-b">
+            <div class="grid3">
+              <div class="field"><label>出厂湿重 <span class="tag">吨</span></label><input type="number" inputmode="decimal" step="0.001" id="wOut" placeholder="0"></div>
+              <div class="field"><label>到厂湿重 <span class="tag">吨</span></label><input type="number" inputmode="decimal" step="0.001" id="wIn" placeholder="0"></div>
+              <div class="field"><label>实测含水率 <span class="tag">湿基 %</span></label><input type="number" inputmode="decimal" step="0.1" id="m" placeholder="0"></div>
+              <div class="field"><label>扣杂 <span class="tag">吨</span></label><input type="number" inputmode="decimal" step="0.001" id="impurity" placeholder="0"></div>
+              <div class="field"><label>基准含水率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.1" id="m0"></div>
+              <div class="field"><label>结算依据</label>
+                <select id="basis">
+                  <option value="in">按到厂湿重结算</option>
+                  <option value="out">按出厂湿重结算</option>
+                </select>
+              </div>
+            </div>
+            <div class="hint" style="margin-top:8px">绝干吨 ＝（到厂湿重 − 扣杂）×（1 − 含水率）。含水率请与纸厂化验单口径核对：确认是湿基还是干基。</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">③ 价格与费用</div>
+          <div class="card-b">
+
+            <div class="mode-12">
+              <div class="grid2">
+                <div class="field"><label>采购价 <span class="tag">元/湿吨</span></label><input type="number" inputmode="decimal" step="1" id="pw" placeholder="0"></div>
+                <div class="field"><label>纸厂结算价 <span class="tag">元/绝干吨</span></label><input type="number" inputmode="decimal" step="1" id="pd" placeholder="0"></div>
+              </div>
+            </div>
+
+            <div class="mode-2" style="margin-top:12px">
+              <div class="grid2">
+                <div class="field"><label>运费计费方式</label>
+                  <select id="freightMode">
+                    <option value="perTon">元/湿吨</option>
+                    <option value="perTruck">元/车</option>
+                  </select>
+                </div>
+                <div class="field"><label>运费</label><input type="number" inputmode="decimal" step="1" id="freight" placeholder="0"></div>
+              </div>
+            </div>
+
+            <div class="mode-3" style="margin-top:12px">
+              <div class="grid2">
+                <div class="field"><label>纸厂结算价 <span class="tag">元/绝干吨</span></label><input type="number" inputmode="decimal" step="1" id="pd3" placeholder="0"></div>
+                <div class="field"><label>原木价 <span class="tag">元/湿吨</span></label><input type="number" inputmode="decimal" step="1" id="plog" placeholder="0"></div>
+                <div class="field"><label>原木含水率 <span class="tag">湿基 %</span></label><input type="number" inputmode="decimal" step="0.1" id="mlog" placeholder="0"></div>
+                <div class="field"><label>绝干出片率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.1" id="r" placeholder="0"></div>
+                <div class="field"><label>加工费 <span class="tag">元/绝干吨木片</span></label><input type="number" inputmode="decimal" step="1" id="process" placeholder="0"></div>
+                <div class="field"><label>原木票种</label>
+                  <select id="logTicket">
+                    <option value="free">免税农产品发票/收购发票</option>
+                    <option value="9">9% 专票</option>
+                  </select>
+                </div>
+                <div class="field"><label>木片运费 <span class="tag">元/湿吨</span></label><input type="number" inputmode="decimal" step="1" id="freight3" placeholder="0"></div>
+                <div class="field"><label>原木运费 <span class="tag">元/湿吨原木</span></label><input type="number" inputmode="decimal" step="1" id="logFreight" placeholder="0"></div>
+              </div>
+              <div class="hint" style="margin-top:8px">出片率按<b>绝干</b>口径（绝干木片÷绝干原木）。木片含水率高时应同步上调原木含水率，否则会低估原木用量。</div>
+            </div>
+
+            <div class="grid2" style="margin-top:12px">
+              <div class="field"><label>其他费用 <span class="tag">元/车</span></label><input type="number" inputmode="decimal" step="1" id="other" placeholder="0"></div>
+              <div class="field"><label>期间费用分摊 <span class="tag">元/车</span></label><input type="number" inputmode="decimal" step="1" id="periodCost" placeholder="0"></div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="btnSave">保存本车</button>
+              <button class="btn ghost" id="btnReset">清空</button>
+              <button class="btn ghost" id="btnPrint">打印结算单</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <aside class="res-col">
+        <div class="hero" id="hero">
+          <div class="cap">本车净利</div>
+          <div class="big" id="rNet"><small>¥</small>—</div>
+          <div class="row">
+            <span>每绝干吨 <b id="rPer">—</b></span>
+            <span>净利率 <b id="rMargin">—</b></span>
+            <span>绝干吨 <b id="rDry">—</b></span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="card-b" style="padding-top:12px">
+            <div class="kpis">
+              <div class="kpi"><div class="k">含税毛利</div><div class="v" id="rGrossTax">—</div></div>
+              <div class="kpi"><div class="k">不含税毛利</div><div class="v" id="rGross">—</div></div>
+              <div class="kpi"><div class="k">增值税税负率</div><div class="v" id="rVatRate">—</div></div>
+              <div class="kpi"><div class="k">全口径税负率</div><div class="v" id="rAllRate">—</div></div>
+            </div>
+
+            <div class="sec-t">票据与税</div>
+            <div class="rows">
+              <div class="row"><span class="l">销项税额</span><span class="r" id="rOut">—</span></div>
+              <div class="row"><span class="l">进项税额合计</span><span class="r" id="rIn">—</span></div>
+              <div class="row sum"><span class="l">应纳增值税</span><span class="r" id="rVat">—</span></div>
+              <div class="row"><span class="l">附加税费</span><span class="r" id="rSurtax">—</span></div>
+              <div class="row"><span class="l">印花税</span><span class="r" id="rStamp">—</span></div>
+              <div class="row"><span class="l">企业所得税</span><span class="r" id="rItax">—</span></div>
+            </div>
+
+            <div class="sec-t">收入与成本</div>
+            <div class="rows" id="rCostRows">
+              <div class="row"><span class="l">不含税收入</span><span class="r" id="rRev">—</span></div>
+            </div>
+
+            <div id="rAlerts"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ 记录 ============ -->
+  <section class="view" id="view-records">
+    <div class="toolbar">
+      <input class="search" id="qRec" placeholder="搜车号 / 供应商 / 纸厂">
+      <select class="pick" id="fMode">
+        <option value="">全部模式</option>
+        <option value="1">模式1 到场价</option>
+        <option value="2">模式2 自找车</option>
+        <option value="3">模式3 原木加工</option>
+      </select>
+      <div class="sp"></div>
+      <button class="btn sm" id="btnCsvRec">导出明细 CSV</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>日期</th><th>车号</th><th>供应商</th><th>模式</th>
+          <th class="n">绝干吨</th><th class="n">收入</th><th class="n">净利</th><th class="n">吨净利</th><th></th>
+        </tr></thead>
+        <tbody id="tbRec"></tbody>
+      </table>
+    </div>
+    <div class="note">点任意一行可载入修改；删除不可恢复。数据存在本机浏览器，请在“参数”页定期导出备份。</div>
+  </section>
+
+  <!-- ============ 汇总 ============ -->
+  <section class="view" id="view-summary">
+    <div class="sumhead">
+      <span style="font-size:13px;color:var(--muted)">汇总维度</span>
+      <select class="pick" id="groupBy">
+        <option value="month">按月</option>
+        <option value="supplier">按供应商</option>
+        <option value="mill">按纸厂</option>
+        <option value="mode">按模式</option>
+      </select>
+      <div class="sp" style="flex:1"></div>
+      <button class="btn sm" id="btnCsvSum">导出汇总 CSV</button>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-b" style="padding:6px 4px 10px">
+        <div class="chart"><div class="bars" id="chartBars"></div></div>
+        <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:6px">净利（元）</div>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th id="thGroup">月份</th><th class="n">车数</th><th class="n">绝干吨</th>
+          <th class="n">不含税收入</th><th class="n">应纳增值税</th>
+          <th class="n">净利</th><th class="n">吨均净利</th><th class="n">净利率</th><th class="n">全口径税负</th>
+        </tr></thead>
+        <tbody id="tbSum"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ 参数 ============ -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <div class="card-h">测算参数</div>
+      <div class="card-b">
+        <div class="grid3">
+          <div class="field"><label>基准含水率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.1" id="sM0"></div>
+          <div class="field"><label>附加税费率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.5" id="sSurtax"></div>
+          <div class="field"><label>企业所得税率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.5" id="sItax"></div>
+          <div class="field"><label>印花税率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.01" id="sStamp"></div>
+          <div class="field"><label>默认采购价 <span class="tag">元/湿吨</span></label><input type="number" inputmode="decimal" step="1" id="sPw"></div>
+          <div class="field"><label>默认纸厂价 <span class="tag">元/绝干吨</span></label><input type="number" inputmode="decimal" step="1" id="sPd"></div>
+          <div class="field"><label>默认运费 <span class="tag">元/湿吨</span></label><input type="number" inputmode="decimal" step="1" id="sFreight"></div>
+          <div class="field"><label>默认原木价 <span class="tag">元/湿吨</span></label><input type="number" inputmode="decimal" step="1" id="sPlow"></div>
+          <div class="field"><label>默认绝干出片率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.1" id="sR"></div>
+          <div class="field"><label>默认加工费 <span class="tag">元/绝干吨</span></label><input type="number" inputmode="decimal" step="1" id="sProcess"></div>
+          <div class="field"><label>默认原木含水率 <span class="tag">%</span></label><input type="number" inputmode="decimal" step="0.1" id="sMlog"></div>
+          <div class="field"><label>默认上游票种</label>
+            <select id="sTicket"><option value="13">13%</option><option value="3">3%</option><option value="1">1%</option></select>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="btnSaveSettings">保存参数</button>
+          <button class="btn" id="btnCsvAll">导出全部明细 CSV</button>
+          <button class="btn" id="btnBackup">导出备份 JSON</button>
+          <button class="btn" id="btnRestore">导入备份</button>
+          <input type="file" id="fileRestore" accept=".json" style="display:none">
+        </div>
+        <div class="note">
+          印花税按采购与销售合同各 0.03% 估算；增值税销项固定 13%（木片法定税率，不可调）。<br>
+          数据存在本机 localStorage，清理浏览器数据会丢失——建议每周导出一次备份。
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">基础档案 <span class="tag">预录入，测算时点选</span></div>
+      <div class="card-b">
+        <div class="note" style="margin-top:0">
+          把常用的供应商、纸厂、车号录在这里。测算时点输入框右侧的「▾」直接选，也照样可以手打新名字。<br>
+          保存记录时新填的名称会自动收进档案，不用来回跑两趟。
+        </div>
+        <div class="dict-row">
+          <div class="dict-h">供应商 <span class="cnt" id="cnt-supplier"></span></div>
+          <div class="chips" id="chip-supplier"></div>
+          <div class="dict-add">
+            <input type="text" id="add-supplier" placeholder="输名称后回车，逗号可一次加多个">
+            <button class="btn sm" data-add="supplier">添加</button>
+          </div>
+        </div>
+        <div class="dict-row">
+          <div class="dict-h">纸厂 <span class="cnt" id="cnt-mill"></span></div>
+          <div class="chips" id="chip-mill"></div>
+          <div class="dict-add">
+            <input type="text" id="add-mill" placeholder="输名称后回车，逗号可一次加多个">
+            <button class="btn sm" data-add="mill">添加</button>
+          </div>
+        </div>
+        <div class="dict-row">
+          <div class="dict-h">车号 <span class="cnt" id="cnt-plate"></span></div>
+          <div class="chips" id="chip-plate"></div>
+          <div class="dict-add">
+            <input type="text" id="add-plate" placeholder="输车号后回车，逗号可一次加多个">
+            <button class="btn sm" data-add="plate">添加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="picker" class="picker">
+  <div class="picker-b">
+    <div class="picker-h" id="pickerH">选择</div>
+    <div id="pickerList"></div>
+    <button class="btn" id="pickerCancel" style="width:100%;margin-top:4px">取消</button>
+  </div>
+</div>
+<div id="receipt"></div>
+<div id="toast"></div>
+
+<script>
+// ==ENGINE-START==
+function num(v){ const n = parseFloat(v); return isFinite(n) ? n : 0; }
+
+/**
+ * 每车测算
+ * inp: 输入（mode 1/2/3）
+ * P: 参数
+ * mOv: 可选，覆盖含水率（0-1 小数），用于求临界值
+ */
+function compute(inp, P, mOv){
+  const M = (mOv !== undefined) ? mOv : num(inp.m)/100;
+  // 基准含水率没设时按实测值，即不做水分奖罚（避免空值被当成 0 放大亏损）
+  const M0 = num(P.m0) > 0 ? num(P.m0)/100 : M;
+  const wIn = num(inp.wIn), wOut = num(inp.wOut), imp = num(inp.impurity);
+  const mode = String(inp.mode);
+  const pd = mode === '3' ? num(inp.pd3) : num(inp.pd);
+  const dryBase = Math.max(0, wIn - imp);
+  const D = dryBase * (1 - M);
+
+  let items = [];
+  let extra = {};
+
+  if(mode === '3'){
+    const R = num(inp.r)/100;
+    const Mlog = num(inp.mlog)/100;
+    const logDry = R > 0 && R <= 1 ? D / R : 0;
+    const logWet = Mlog < 1 ? logDry / (1 - Mlog) : 0;
+    const logAmt = logWet * num(inp.plog);
+    const logIn = inp.logTicket === '9' ? logAmt/1.09*0.09 : logAmt*0.09;
+    const procAmt = num(inp.process) * D;
+    const procIn = procAmt/1.13*0.13;
+    const frAmt = num(inp.freight3) * wIn;
+    const frIn = frAmt/1.09*0.09;
+    const frLogAmt = num(inp.logFreight) * logWet;
+    const frLogIn = frLogAmt/1.09*0.09;
+    items = [
+      {k:'原木', amt:logAmt, vat:logIn},
+      {k:'加工费', amt:procAmt, vat:procIn},
+      {k:'木片运费', amt:frAmt, vat:frIn}
+    ];
+    if(frLogAmt > 0) items.push({k:'原木运费', amt:frLogAmt, vat:frLogIn});
+    extra = {logWet, logDry, logAmt, logIn, procAmt, procIn, frAmt, frLogAmt};
+  } else {
+    const settleWet = inp.basis === 'out' ? wOut : wIn;
+    const buyAmt = settleWet * num(inp.pw);
+    const rate = inp.ticket === '13' ? 0.13 : inp.ticket === '3' ? 0.03 : 0.01;
+    const buyIn = buyAmt/(1+rate)*rate;
+    let frAmt = 0;
+    if(mode === '2'){
+      frAmt = inp.freightMode === 'perTruck' ? num(inp.freight) : num(inp.freight)*wIn;
+    }
+    const frIn = frAmt/1.09*0.09;
+    items = [{k:'木片采购', amt:buyAmt, vat:buyIn}];
+    if(frAmt > 0) items.push({k:'运费', amt:frAmt, vat:frIn});
+    extra = {settleWet, buyAmt, buyIn, frAmt, frIn};
+  }
+
+  const other = num(inp.other);
+  if(other > 0) items.push({k:'其他费用', amt:other, vat:0, noVat:true});
+
+  const costTax = items.reduce((s,x)=>s+x.amt,0);
+  const costIn  = items.reduce((s,x)=>s+x.vat,0);
+  const costNet = costTax - costIn;
+
+  const revTax = D * pd;
+  const outVat = revTax/1.13*0.13;
+  const revNet = revTax - outVat;
+
+  const grossTax = revTax - costTax;
+  const gross = revNet - costNet;
+
+  const vatPay = Math.max(0, outVat - costIn);
+  const vatCredit = Math.max(0, costIn - outVat);
+
+  const surtax = vatPay * num(P.surtax)/100;
+  const stamp = (costNet + revNet) * num(P.stamp)/100;
+  const period = num(inp.periodCost);
+  const ebt = gross - surtax - stamp - period;
+  const itax = Math.max(0, ebt) * num(P.incomeTax)/100;
+  const net = ebt - itax;
+
+  const lossPct = (wOut > 0 && mode !== '3') ? (wOut - wIn - imp)/wOut : 0;
+  const moistureLoss = (M - M0) * dryBase * pd;
+
+  return {
+    D, dryBase, M, M0, pd, revTax, revNet, outVat,
+    items, costTax, costIn, costNet,
+    grossTax, gross, vatPay, vatCredit, surtax, stamp, period, ebt, itax, net,
+    perDry: D > 0 ? net/D : 0,
+    vatRate: revNet > 0 ? vatPay/revNet : 0,
+    allRate: revNet > 0 ? (vatPay+surtax+stamp+itax)/revNet : 0,
+    netMargin: revNet > 0 ? net/revNet : 0,
+    lossPct, moistureLoss, extra,
+    perDryGrossTax: D > 0 ? grossTax/D : 0
+  };
+}
+
+/** 净利=0 时的含水率（%），无解返回 null */
+function mStar(inp, P){
+  if(num(inp.wIn) <= 0 || (String(inp.mode)==='3' ? num(inp.pd3) : num(inp.pd)) <= 0) return null;
+  const f = m => compute(inp, P, m).net;
+  if(f(0.02) <= 0) return null;
+  if(f(0.72) > 0) return null;
+  let lo = 0.02, hi = 0.72;
+  for(let i=0;i<50;i++){
+    const mid = (lo+hi)/2;
+    if(f(mid) > 0) lo = mid; else hi = mid;
+  }
+  return (lo+hi)/2*100;
+}
+
+/** 净利=0 时的原木湿吨价（模式3），无解返回 null */
+function logStar(inp, P){
+  if(String(inp.mode) !== '3' || num(inp.wIn) <= 0 || num(inp.pd3) <= 0) return null;
+  const f = p => { const c = Object.assign({}, inp, {plog:p}); return compute(c, P).net; };
+  if(f(0) <= 0) return null;
+  let lo = 0, hi = 2000;
+  if(f(hi) > 0) return null;
+  for(let i=0;i<50;i++){
+    const mid = (lo+hi)/2;
+    if(f(mid) > 0) lo = mid; else hi = mid;
+  }
+  return (lo+hi)/2;
+}
+
+/** 上游票种从 r 换到 13% 时，本车多出来的进项与净利；折成每湿吨应压价 */
+function ticketGap(inp, P, r){
+  const mode = String(inp.mode);
+  if(mode === '3' || inp.ticket === '13') return null;
+  const settleWet = inp.basis === 'out' ? num(inp.wOut) : num(inp.wIn);
+  const amt = settleWet * num(inp.pw);
+  if(amt <= 0) return null;
+  const in13 = amt/1.13*0.13;
+  const inNow = amt/(1+r)*r;
+  const dIn = in13 - inNow;
+  const dNet = dIn * (1 - num(P.incomeTax)/100);
+  return {dIn, dNet, perWet: settleWet > 0 ? dNet/settleWet : 0};
+}
+// ==ENGINE-END==
+
+/* ================= 应用层 ================= */
+const K = {P:'wp_params_v1', R:'wp_records_v1'};
+/* 业务数值一律不预填（留空由 placeholder 提示），只有税率类给法定默认值 */
+const DEF = {
+  m0:'', surtax:12, incomeTax:25, stamp:0.03,
+  pw:'', pd:'', freight:'', plow:'', r:'', process:'', mlog:'',
+  ticket:'13', supList:[], millList:[], plateList:[]
+};
+/* 旧版本的预填值，首次打开新版时清掉，避免看起来像真实数据 */
+const LEGACY_FILL = {m0:45, pw:400, pd:800, freight:80, plow:250, r:90, process:85, mlog:45};
+let P = loadJSON(K.P, DEF);
+let REC = loadJSON(K.R, []);
+let editingId = null;
+
+/* ---- 基础档案：供应商 / 纸厂 / 车号（键＝测算页的字段 id） ---- */
+const DICTS = {
+  supplier:{k:'supList',   label:'供应商'},
+  mill:    {k:'millList',  label:'纸厂'},
+  plate:   {k:'plateList', label:'车号'}
+};
+const DICT_ORDER = ['supplier','mill','plate'];
+
+function splitList(s){
+  return String(s||'').split(/[,，、;；\n]/).map(v=>v.trim()).filter(Boolean);
+}
+function dictArr(kind){
+  const key = DICTS[kind].k;
+  if(!Array.isArray(P[key])) P[key] = [];
+  return P[key];
+}
+function dictAdd(kind, raw){
+  const arr = dictArr(kind);
+  let n = 0;
+  splitList(raw).forEach(v=>{ if(!arr.includes(v)){ arr.push(v); n++; } });
+  return n;
+}
+function migrateDict(){
+  // 旧版把名单存成 sup/mill 逗号字符串，这里迁移成数组
+  if(!Array.isArray(P.supList))  P.supList  = splitList(P.sup);
+  if(!Array.isArray(P.millList)) P.millList = splitList(P.mill);
+  if(!Array.isArray(P.plateList)) P.plateList = [];
+  delete P.sup; delete P.mill;
+  // 已有记录里的名称自动补进档案
+  (REC || []).forEach(r=>{
+    const i = r.inp || {};
+    dictAdd('supplier', i.supplier); dictAdd('mill', i.mill); dictAdd('plate', i.plate);
+  });
+}
+migrateDict();
+
+function loadJSON(k, d){
+  try{ const s = localStorage.getItem(k); return s ? JSON.parse(s) : JSON.parse(JSON.stringify(d)); }
+  catch(e){ return JSON.parse(JSON.stringify(d)); }
+}
+function saveJSON(k, v){
+  try{ localStorage.setItem(k, JSON.stringify(v)); return true; }
+  catch(e){ toast('本机存储不可用，数据无法保存'); return false; }
+}
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => (isFinite(n)?n:0).toLocaleString('zh-CN',{minimumFractionDigits:d, maximumFractionDigits:d});
+const fmt0 = n => fmt(n,0);
+function pct(n, d=2){ return (n*100).toFixed(d)+'%'; }
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 1900);
+}
+
+/* ---- 表单读写 ---- */
+function readForm(){
+  const mode = $('mode').value;
+  return {
+    mode,
+    date: $('date').value,
+    plate: $('plate').value.trim(),
+    supplier: $('supplier').value.trim(),
+    mill: $('mill').value.trim(),
+    ticket: $('ticket').value,
+    wOut: num($('wOut').value), wIn: num($('wIn').value),
+    m: num($('m').value), impurity: num($('impurity').value),
+    m0: num($('m0').value), basis: $('basis').value,
+    pw: num($('pw').value), pd: num($('pd').value),
+    freightMode: $('freightMode').value, freight: num($('freight').value),
+    pd3: num($('pd3').value), plog: num($('plog').value), mlog: num($('mlog').value),
+    r: num($('r').value), process: num($('process').value),
+    logTicket: $('logTicket').value,
+    freight3: num($('freight3').value), logFreight: num($('logFreight').value),
+    other: num($('other').value), periodCost: num($('periodCost').value)
+  };
+}
+
+function fillForm(inp){
+  $('mode').value = inp.mode || '1';
+  $('date').value = inp.date || today();
+  $('plate').value = inp.plate || '';
+  $('supplier').value = inp.supplier || '';
+  $('mill').value = inp.mill || '';
+  $('ticket').value = inp.ticket || P.ticket;
+  $('wOut').value = inp.wOut || '';
+  $('wIn').value = inp.wIn || '';
+  $('m').value = inp.m || '';
+  $('impurity').value = inp.impurity || '';
+  $('m0').value = inp.m0 || P.m0;
+  $('basis').value = inp.basis || 'in';
+  $('pw').value = inp.pw || P.pw;
+  $('pd').value = inp.pd || P.pd;
+  $('freightMode').value = inp.freightMode || 'perTon';
+  $('freight').value = inp.freight || P.freight;
+  $('pd3').value = inp.pd3 || P.pd;
+  $('plog').value = inp.plog || P.plow;
+  $('mlog').value = inp.mlog || P.mlog;
+  $('r').value = inp.r || P.r;
+  $('process').value = inp.process || P.process;
+  $('logTicket').value = inp.logTicket || 'free';
+  $('freight3').value = inp.freight3 || 0;
+  $('logFreight').value = inp.logFreight || 0;
+  $('other').value = inp.other || '';
+  $('periodCost').value = inp.periodCost || '';
+  syncMode();
+}
+
+function today(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
+
+function syncMode(){
+  const mode = $('mode').value;
+  document.querySelectorAll('.mode-12').forEach(e=>e.style.display = mode==='3'?'none':'block');
+  document.querySelectorAll('.mode-2').forEach(e=>e.style.display = mode==='2'?'block':'none');
+  document.querySelectorAll('.mode-3').forEach(e=>e.style.display = mode==='3'?'block':'none');
+  $('fTicket').style.display = mode==='3'?'none':'flex';
+  $('basis').closest('.field').style.display = mode==='3'?'none':'flex';
+}
+function syncTicket(){
+  // 上游票种只影响 mode1/2
+}
+
+/* ---- 渲染结果 ---- */
+function render(){
+  const inp = readForm();
+  const R = compute(inp, P);
+
+  const mBlank = $('m').value.trim() === '';
+  const isM3 = String(inp.mode) === '3';
+  // 关键项没填就不出数，避免把“成本 0”算成虚高利润
+  const priceSet = isM3 ? (inp.plog > 0 && inp.r > 0) : inp.pw > 0;
+  const hasData = inp.wIn > 0 && R.D > 0 && inp.pd > 0 && !mBlank && priceSet;
+  if(!hasData){
+    $('rCostRows').innerHTML = '<div class="row"><span class="l">不含税收入</span><span class="r">—</span></div>';
+    ['rPer','rMargin','rDry','rGross','rGrossTax','rVatRate','rAllRate',
+     'rOut','rIn','rVat','rSurtax','rStamp','rItax','miniNet','miniPer','miniDry']
+      .forEach(id=>{ const el = $(id); if(el) el.textContent = '—'; });
+    $('rNet').innerHTML = '<small>¥</small>—';
+    $('miniNet').className = '';
+    let tip = '';
+    if(inp.wIn > 0 && inp.pd > 0 && !mBlank && !priceSet){
+      tip = isM3 ? '还差<b>原木价</b>与<b>绝干出片率</b>。' : '还差<b>采购价</b>。';
+    } else if(inp.wIn > 0 && inp.pd > 0 && mBlank){
+      tip = '还差<b>实测含水率</b>：填上才能把湿吨折成绝干吨。';
+    }
+    $('rAlerts').innerHTML = tip ? `<div class="alert w">${tip}</div>` : '';
+    $('hero').classList.remove('loss');
+    return;
+  }
+
+  const loss = R.net < 0;
+  $('hero').classList.toggle('loss', loss);
+  $('rNet').innerHTML = '<small>¥</small>' + fmt(R.net);
+  $('rPer').textContent = '¥' + fmt(R.perDry);
+  $('rMargin').textContent = pct(R.netMargin);
+  $('rDry').textContent = fmt(R.D, 3) + ' 吨';
+
+  $('rGrossTax').innerHTML = '¥' + fmt(R.grossTax);
+  $('rGross').innerHTML = '¥' + fmt(R.gross);
+  $('rVatRate').textContent = pct(R.vatRate);
+  $('rAllRate').textContent = pct(R.allRate);
+
+  $('rOut').textContent = '¥' + fmt(R.outVat);
+  $('rIn').textContent = '−¥' + fmt(R.costIn);
+  $('rVat').innerHTML = R.vatCredit > 0
+    ? '留抵 ¥' + fmt(R.vatCredit)
+    : '¥' + fmt(R.vatPay);
+  $('rSurtax').textContent = '¥' + fmt(R.surtax);
+  $('rStamp').textContent = '¥' + fmt(R.stamp);
+  $('rItax').textContent = '¥' + fmt(R.itax);
+
+  let rows = '';
+  rows += `<div class="row"><span class="l">不含税收入</span><span class="r">¥${fmt(R.revNet)}</span></div>`;
+  R.items.forEach(it=>{
+    rows += `<div class="row"><span class="l">${it.k}（含税 ¥${fmt(it.amt)}）</span><span class="r">−¥${fmt(it.amt - it.vat)}</span></div>`;
+  });
+  rows += `<div class="row sum"><span class="l">不含税毛利</span><span class="r">¥${fmt(R.gross)}</span></div>`;
+  if(R.period > 0) rows += `<div class="row"><span class="l">期间费用</span><span class="r">−¥${fmt(R.period)}</span></div>`;
+  rows += `<div class="row sum"><span class="l">净利</span><span class="r ${loss?'neg':'pos'}">¥${fmt(R.net)}</span></div>`;
+  $('rCostRows').innerHTML = rows;
+
+  // 预警
+  let alerts = [];
+  const ms = mStar(inp, P);
+  const mLossPts = (R.M - R.M0)*100;
+
+  if(Math.abs(mLossPts) >= 0.05){
+    if(mLossPts > 0){
+      alerts.push(`<div class="alert ${mLossPts>=2?'d':'w'}">水分比基准高 <b>${mLossPts.toFixed(1)}</b> 个点，本车少卖 <b>¥${fmt(R.moistureLoss)}</b>（绝干吨少了 ${fmt(R.dryBase*mLossPts/100,3)} 吨）。</div>`);
+    } else if(mLossPts < -0.5){
+      alerts.push(`<div class="alert g">水分比基准低 <b>${Math.abs(mLossPts).toFixed(1)}</b> 个点，相对基准多赚 <b>¥${fmt(-R.moistureLoss)}</b>。</div>`);
+    }
+  }
+  if(ms !== null){
+    const room = ms - R.M*100;
+    if(room < 1.2){
+      alerts.push(`<div class="alert d">含水率超过 <b>${ms.toFixed(2)}%</b> 这车就亏，当前 ${(R.M*100).toFixed(2)}%，只剩 <b>${room.toFixed(2)}</b> 个点余量。</div>`);
+    }
+  }
+  if(String(inp.mode) !== '3' && R.lossPct > 0.01){
+    alerts.push(`<div class="alert ${R.lossPct>0.02?'d':'w'}">运输损耗 <b>${(R.lossPct*100).toFixed(2)}%</b>（${fmt(R.lossPct*inp.wOut,3)} 吨），超过 1% 合理区间，向承运人索赔。</div>`);
+  }
+  const r = inp.ticket==='13'?0.13:inp.ticket==='3'?0.03:0.01;
+  const gap = ticketGap(inp, P, r);
+  if(gap && gap.dNet > 0.5){
+    alerts.push(`<div class="alert w">上游开 ${inp.ticket}% 票，比 13% 票少抵进项 <b>¥${fmt(gap.dIn)}</b>，净利少 <b>¥${fmt(gap.dNet)}</b>；要抵平，采购价还得再降 <b>¥${fmt(gap.perWet)}</b>/湿吨。</div>`);
+  }
+  if(R.vatRate > 0.05 && inp.ticket === '13'){
+    alerts.push(`<div class="alert w">增值税税负率 ${pct(R.vatRate)} 偏高，检查是否有未取得票的费用（运费/加工费）。</div>`);
+  }
+  if(String(inp.mode) === '3' && !loss){
+    const ls = logStar(inp, P);
+    if(ls !== null){
+      const room = num(inp.plog) - ls;
+      if(room < 40){
+        alerts.push(`<div class="alert ${room<15?'d':'w'}">原木价涨到 <b>¥${fmt(ls)}/湿吨</b> 这车就亏，当前 ¥${fmt(num(inp.plog))}，只剩 <b>¥${fmt(room)}</b> 空间。</div>`);
+      }
+    }
+  }
+  if(loss){
+    let acts = [];
+    if(String(inp.mode) === '3'){
+      const ls = logStar(inp, P);
+      if(ls !== null) acts.push(`原木价压到 ¥${fmt(ls)}/湿吨 以下`);
+    } else {
+      const bp = bePrice(inp, P);
+      if(bp > 0) acts.push(`采购价压到 ¥${fmt(bp)}/湿吨 以下`);
+    }
+    if(ms !== null) acts.push(`含水率标准压到 ${ms.toFixed(2)}% 以内`);
+    else acts.push(`含水率先按基准 ${(R.M0*100).toFixed(1)}% 收料`);
+    acts.push('改为按到厂湿重结算');
+    alerts.push(`<div class="alert d"><b>这车是亏的。</b>可行动作：${acts.map((a,i)=>`${i+1}) ${a}`).join('；')}。</div>`);
+  }
+  $('rAlerts').innerHTML = alerts.join('');
+
+  // 手机迷你条
+  $('miniNet').textContent = '¥' + fmt(R.net);
+  $('miniNet').className = loss ? 'neg' : '';
+  $('miniPer').textContent = '¥' + fmt(R.perDry);
+  $('miniDry').textContent = fmt(R.D,3);
+
+  return R;
+}
+
+function bePrice(inp, P){
+  // 含税毛利=0 的湿吨采购价
+  if(String(inp.mode)==='3') return 0;
+  const settleWet = inp.basis==='out'? num(inp.wOut) : num(inp.wIn);
+  if(settleWet<=0) return 0;
+  const R = compute(inp,P);
+  const revTax = R.revTax;
+  const otherCost = R.costTax - (R.extra.buyAmt||0);
+  return Math.max(0, (revTax - otherCost)/settleWet);
+}
+
+/* ---- 记录 ---- */
+function saveRecord(){
+  const inp = readForm();
+  if(inp.wIn <= 0){ toast('请先填到厂湿重'); return; }
+  const out = compute(inp, P);
+  if(out.D <= 0){ toast('绝干吨为 0，检查数量与含水率'); return; }
+  const rec = {id: editingId || ('r'+Date.now()), inp, out, savedAt: new Date().toISOString()};
+  if(editingId){
+    const i = REC.findIndex(x=>x.id===editingId);
+    if(i>=0) REC[i] = rec; else REC.unshift(rec);
+    editingId = null;
+    toast('已更新');
+  } else {
+    REC.unshift(rec);
+    toast('已保存');
+  }
+  // 新填的供应商/纸厂/车号自动收进基础档案，下次直接点选
+  let grew = false;
+  grew = dictAdd('supplier', inp.supplier) > 0 || grew;
+  grew = dictAdd('mill', inp.mill) > 0 || grew;
+  grew = dictAdd('plate', inp.plate) > 0 || grew;
+  if(grew){ saveJSON(K.P, P); refreshDatalist(); }
+
+  saveJSON(K.R, REC);
+  renderRecords(); renderSummary();
+}
+
+function renderRecords(){
+  const q = ($('qRec').value||'').trim().toLowerCase();
+  const fm = $('fMode').value;
+  const rows = REC.filter(r=>{
+    if(fm && String(r.inp.mode)!==fm) return false;
+    if(!q) return true;
+    const s = [r.inp.plate,r.inp.supplier,r.inp.mill,r.inp.date].join(' ').toLowerCase();
+    return s.includes(q);
+  });
+  const tb = $('tbRec');
+  if(!rows.length){
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty">还没有记录。在“每车测算”填入一车数据后点“保存本车”。</div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(r=>{
+    const o = r.out, neg = o.net < 0;
+    return `<tr data-id="${r.id}">
+      <td>${r.inp.date||''}</td>
+      <td>${esc(r.inp.plate)||'—'}</td>
+      <td>${esc(r.inp.supplier)||'—'}</td>
+      <td>模${r.inp.mode}${r.inp.mode==='3'?'':` · ${r.inp.ticket}%`}</td>
+      <td class="n">${fmt(o.D,3)}</td>
+      <td class="n">${fmt(o.revTax,0)}</td>
+      <td class="n ${neg?'neg':'pos'}">${fmt(o.net,0)}</td>
+      <td class="n ${neg?'neg':'pos'}">${fmt(o.perDry,0)}</td>
+      <td><button class="btn sm danger" data-del="${r.id}">删</button></td>
+    </tr>`;
+  }).join('');
+}
+function esc(s){ return String(s||'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+
+/* ---- 汇总 ---- */
+function groupKey(r, by){
+  if(by==='month') return (r.inp.date||'').slice(0,7) || '未填日期';
+  if(by==='supplier') return r.inp.supplier || '未填供应商';
+  if(by==='mill') return r.inp.mill || '未填纸厂';
+  return '模式'+r.inp.mode;
+}
+function aggregate(by){
+  const m = new Map();
+  REC.forEach(r=>{
+    const k = groupKey(r, by);
+    const o = r.out;
+    if(!m.has(k)) m.set(k, {k, n:0, D:0, rev:0, vat:0, net:0, allTax:0});
+    const g = m.get(k);
+    g.n++; g.D += o.D; g.rev += o.revNet; g.vat += o.vatPay; g.net += o.net;
+    g.allTax += o.vatPay + o.surtax + o.stamp + o.itax;
+  });
+  const arr = [...m.values()];
+  arr.forEach(g=>{
+    g.perDry = g.D>0 ? g.net/g.D : 0;
+    g.margin = g.rev>0 ? g.net/g.rev : 0;
+    g.allRate = g.rev>0 ? g.allTax/g.rev : 0;
+  });
+  if(by==='month') arr.sort((a,b)=>a.k.localeCompare(b.k));
+  else arr.sort((a,b)=>b.net-a.net);
+  return arr;
+}
+function renderSummary(){
+  const by = $('groupBy').value;
+  const arr = aggregate(by);
+  $('thGroup').textContent = by==='month'?'月份':by==='supplier'?'供应商':by==='mill'?'纸厂':'模式';
+
+  const tb = $('tbSum');
+  if(!arr.length){
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty">还没有数据，先保存几车。</div></td></tr>`;
+    $('chartBars').innerHTML = '';
+    return;
+  }
+  tb.innerHTML = arr.map(g=>`<tr>
+    <td>${esc(g.k)}</td>
+    <td class="n">${g.n}</td>
+    <td class="n">${fmt(g.D,2)}</td>
+    <td class="n">${fmt(g.rev,0)}</td>
+    <td class="n">${fmt(g.vat,0)}</td>
+    <td class="n ${g.net<0?'neg':'pos'}">${fmt(g.net,0)}</td>
+    <td class="n ${g.net<0?'neg':'pos'}">${fmt(g.perDry,0)}</td>
+    <td class="n">${pct(g.margin,1)}</td>
+    <td class="n">${pct(g.allRate,1)}</td>
+  </tr>`).join('');
+
+  const max = Math.max(...arr.map(g=>Math.abs(g.net)), 1);
+  $('chartBars').innerHTML = arr.map(g=>{
+    const h = Math.max(2, Math.abs(g.net)/max*128);
+    return `<div class="bar" title="${esc(g.k)}：¥${fmt(g.net,0)}">
+      <div class="bv">${fmt0(g.net)}</div>
+      <div class="bx" style="height:${h}px;${g.net<0?'background:linear-gradient(180deg,#c0504a,#a8332b)':''}"></div>
+      <div class="bl">${esc(g.k)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ---- 导出 ---- */
+function toCSV(rows){
+  return '\ufeff' + rows.map(r=>r.map(c=>`"${String(c===undefined||c===null?'':c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+}
+function download(name, text, type){
+  const blob = new Blob([text], {type: type||'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function exportDetail(){
+  if(!REC.length){ toast('没有记录可导出'); return; }
+  const head = ['日期','车号','供应商','纸厂','模式','上游票种','出厂湿重','到厂湿重','含水率%','扣杂吨','结算湿吨','绝干吨',
+    '采购含税','采购进项','运费含税','运费进项','加工费','其他','销项税','进项合计','应纳增值税','不含税收入','不含税毛利','含税毛利',
+    '附加','印花','所得税','净利','每绝干吨净利','增值税税负率','全口径税负率','毛利率','净利率'];
+  const rows = REC.map(r=>{
+    const i = r.inp, o = r.out, ex = o.extra||{};
+    return [i.date,i.plate,i.supplier,i.mill,'模式'+i.mode, i.mode==='3'?('原木'+(i.logTicket==='9'?'9%':'免税')):(i.ticket+'%'),
+      i.wOut,i.wIn,i.m,i.impurity, ex.settleWet||'', o.D.toFixed(3),
+      (ex.buyAmt??ex.logAmt??0).toFixed(2), (ex.buyIn??ex.logIn??0).toFixed(2),
+      (ex.frAmt??0).toFixed(2),(ex.frIn??0).toFixed(2),(ex.procAmt??0).toFixed(2),(i.other||0).toFixed(2),
+      o.outVat.toFixed(2), o.costIn.toFixed(2), o.vatPay.toFixed(2), o.revNet.toFixed(2), o.gross.toFixed(2), o.grossTax.toFixed(2),
+      o.surtax.toFixed(2), o.stamp.toFixed(2), o.itax.toFixed(2), o.net.toFixed(2), o.perDry.toFixed(2),
+      (o.vatRate*100).toFixed(2)+'%', (o.allRate*100).toFixed(2)+'%', (o.netMargin*100).toFixed(2)+'%',
+      (o.revNet>0? o.gross/o.revNet*100:0).toFixed(2)+'%'
+    ];
+  });
+  download(`木片每车明细_${today()}.csv`, toCSV([head, ...rows]));
+}
+function exportSummary(){
+  const by = $('groupBy').value;
+  const arr = aggregate(by);
+  if(!arr.length){ toast('没有数据'); return; }
+  const head = [by==='month'?'月份':by==='supplier'?'供应商':by==='mill'?'纸厂':'模式',
+    '车数','绝干吨','不含税收入','应纳增值税','净利','吨均净利','净利率','全口径税负率'];
+  const rows = arr.map(g=>[g.k,g.n,g.D.toFixed(2),g.rev.toFixed(2),g.vat.toFixed(2),g.net.toFixed(2),
+    g.perDry.toFixed(2),(g.margin*100).toFixed(2)+'%',(g.allRate*100).toFixed(2)+'%']);
+  download(`木片汇总_${today()}.csv`, toCSV([head, ...rows]));
+}
+function exportBackup(){
+  download(`木片测算备份_${today()}.json`, JSON.stringify({v:1, P, REC}, null, 2), 'application/json');
+}
+
+/* ---- 结算单 ---- */
+function printReceipt(){
+  const inp = readForm();
+  const R = compute(inp, P);
+  if(!(R.D>0)){ toast('先填一车数据'); return; }
+  const ms = mStar(inp, P);
+  const rows = [
+    ['日期 / 车号', `${inp.date||'—'} / ${inp.plate||'—'}`],
+    ['供应商 / 纸厂', `${inp.supplier||'—'} / ${inp.mill||'—'}`],
+    ['模式', inp.mode==='3'?'原木+委托加工':inp.mode==='2'?'自找车（车板价）':'到场价（厂送）'],
+    ['出厂湿重 / 到厂湿重', `${fmt(inp.wOut,3)} / ${fmt(inp.wIn,3)} 吨`],
+    ['实测含水率 / 扣杂', `${fmt(inp.m,2)}% / ${fmt(inp.impurity,3)} 吨`],
+    ['结算绝干吨', `${fmt(R.D,3)} 吨`]
+  ];
+  if(inp.mode==='3'){
+    rows.push(['需原木湿吨', `${fmt(R.extra.logWet,3)} 吨`]);
+    rows.push(['原木含税额', `¥${fmt(R.extra.logAmt)}`]);
+    rows.push(['加工费', `¥${fmt(R.extra.procAmt)}`]);
+  } else {
+    rows.push(['采购含税额', `¥${fmt(R.extra.buyAmt)}`]);
+    rows.push(['采购价 / 票种', `¥${fmt(inp.pw)}/湿吨 · ${inp.ticket}%`]);
+  }
+  rows.push(['不含税收入', `¥${fmt(R.revNet)}`]);
+  rows.push(['销项税额', `¥${fmt(R.outVat)}`]);
+  rows.push(['进项税额合计', `¥${fmt(R.costIn)}`]);
+  rows.push(['应纳增值税', R.vatCredit>0?`留抵 ¥${fmt(R.vatCredit)}`:`¥${fmt(R.vatPay)}`]);
+  rows.push(['附加 / 印花 / 所得税', `¥${fmt(R.surtax)} / ¥${fmt(R.stamp)} / ¥${fmt(R.itax)}`]);
+  rows.push(['含税毛利', `¥${fmt(R.grossTax)}`]);
+  rows.push(['不含税毛利', `¥${fmt(R.gross)}`]);
+  rows.push(['<b>本车净利</b>', `<b>¥${fmt(R.net)}</b>`]);
+  rows.push(['每绝干吨净利', `¥${fmt(R.perDry)}`]);
+  if(ms) rows.push(['临界含水率', `${ms.toFixed(2)}%（超过即亏）`]);
+
+  $('receipt').innerHTML = `
+    <h2>木片每车结算测算单</h2>
+    <div class="rc-sub">生成时间 ${new Date().toLocaleString('zh-CN')}</div>
+    <table>${rows.map(([k,v])=>`<tr><td class="k">${k}</td><td class="v">${v}</td></tr>`).join('')}</table>
+    <div class="rc-foot">
+      口径说明：绝干吨=（到厂湿重−扣杂）×（1−含水率）；木片销项 13%；运费进项 9%；加工费进项 13%；<br>
+      农产品原木按买价×9% 计算进项。本单为内部测算，不构成税务意见，开票以合同与磅单为准。
+    </div>`;
+  window.print();
+}
+
+/* ---- 事件 ---- */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    $('view-'+t.dataset.view).classList.add('on');
+    if(t.dataset.view==='records') renderRecords();
+    if(t.dataset.view==='summary') renderSummary();
+    if(t.dataset.view==='settings') fillSettings();
+  };
+});
+
+['mode','basis','ticket','freightMode','logTicket'].forEach(id=>{
+  $(id).addEventListener('change', ()=>{ if(id==='mode') syncMode(); render(); });
+});
+document.querySelectorAll('#view-calc input, #view-calc select').forEach(el=>{
+  el.addEventListener('input', render);
+  el.addEventListener('change', render);
+});
+
+$('btnSave').onclick = saveRecord;
+$('btnPrint').onclick = printReceipt;
+$('btnReset').onclick = ()=>{
+  editingId = null;
+  const keepDate = $('date').value;
+  fillForm({mode:$('mode').value, date:keepDate, m0:P.m0, pw:P.pw, pd:P.pd,
+    freight:P.freight, plog:P.plow, mlog:P.mlog, r:P.r, process:P.process,
+    ticket:P.ticket, freightMode:'perTon', logTicket:'free'});
+  render();
+  toast('已清空');
+};
+$('qRec').oninput = renderRecords;
+$('fMode').onchange = renderRecords;
+$('btnCsvRec').onclick = exportDetail;
+$('btnCsvSum').onclick = exportSummary;
+$('groupBy').onchange = renderSummary;
+$('btnCsvAll').onclick = exportDetail;
+$('btnBackup').onclick = exportBackup;
+$('btnRestore').onclick = ()=> $('fileRestore').click();
+$('fileRestore').onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const d = JSON.parse(rd.result);
+      if(REC.length && !confirm('导入会替换本机现有 ' + REC.length + ' 车，导入前会先自动导出一份当前备份。继续？')){
+        e.target.value = ''; return;
+      }
+      if(REC.length) exportBackup();
+      if(Array.isArray(d.REC)) { REC = d.REC; saveJSON(K.R, REC); }
+      if(d.P){ P = Object.assign({}, DEF, d.P); migrateDict(); saveJSON(K.P, P); }
+      refreshDatalist();
+      fillSettings();
+      applyParamsToCalc();
+      renderRecords(); renderSummary(); render();
+      toast('已导入备份');
+    }catch(err){ toast('文件格式不对'); }
+  };
+  rd.readAsText(f);
+  e.target.value = '';
+};
+
+$('tbRec').onclick = e=>{
+  const del = e.target.getAttribute('data-del');
+  if(del){
+    if(!confirm('删除这条记录？不可恢复。')) return;
+    REC = REC.filter(x=>x.id!==del);
+    saveJSON(K.R, REC); renderRecords(); renderSummary();
+    toast('已删除');
+    return;
+  }
+  const tr = e.target.closest('tr');
+  if(!tr) return;
+  const rec = REC.find(x=>x.id===tr.dataset.id);
+  if(!rec) return;
+  editingId = rec.id;
+  fillForm(rec.inp);
+  document.querySelector('.tab[data-view="calc"]').click();
+  render();
+  toast('已载入，可修改后保存');
+};
+
+function fillSettings(){
+  $('sM0').value = P.m0; $('sSurtax').value = P.surtax; $('sItax').value = P.incomeTax;
+  $('sStamp').value = P.stamp; $('sPw').value = P.pw; $('sPd').value = P.pd;
+  $('sFreight').value = P.freight; $('sPlow').value = P.plow; $('sR').value = P.r;
+  $('sProcess').value = P.process; $('sMlog').value = P.mlog; $('sTicket').value = P.ticket;
+  DICT_ORDER.forEach(renderChips);
+}
+/* 参数页保存后，把默认值同步到测算页对应输入框（参数留空的项不动） */
+function applyParamsToCalc(){
+  const map = {
+    m0:P.m0, pw:P.pw, pd:P.pd, pd3:P.pd,
+    freight:P.freight, freight3:P.freight,
+    plog:P.plow, mlog:P.mlog, r:P.r, process:P.process
+  };
+  const keepFilled = editingId !== null;   // 正在编辑历史记录时只补空项，不覆盖已填
+  Object.keys(map).forEach(id=>{
+    const el = $(id); if(!el) return;
+    const v = map[id];
+    if(v === '' || v === null || v === undefined) return;
+    if(keepFilled && el.value.trim() !== '') return;
+    el.value = v;
+  });
+  if(P.ticket) $('ticket').value = P.ticket;
+  syncMode();
+}
+
+$('btnSaveSettings').onclick = ()=>{
+  const nb = id => { const v = $(id).value.trim(); return v === '' ? '' : num(v); };
+  P = {
+    m0:nb('sM0'), surtax:num($('sSurtax').value)||12, incomeTax:num($('sItax').value)||25,
+    stamp:$('sStamp').value.trim()==='' ? 0.03 : num($('sStamp').value),
+    pw:nb('sPw'), pd:nb('sPd'),
+    freight:nb('sFreight'), plow:nb('sPlow'), r:nb('sR'),
+    process:nb('sProcess'), mlog:nb('sMlog'),
+    ticket:$('sTicket').value,
+    supList:P.supList, millList:P.millList, plateList:P.plateList,
+    presetCleared:1
+  };
+  saveJSON(K.P, P);
+  refreshDatalist();
+  applyParamsToCalc();
+  toast('参数已保存，并同步到测算页');
+  render();
+};
+
+function refreshDatalist(){
+  $('dlSup').innerHTML   = dictArr('supplier').map(s=>`<option value="${esc(s)}">`).join('');
+  $('dlMill').innerHTML  = dictArr('mill').map(s=>`<option value="${esc(s)}">`).join('');
+  $('dlPlate').innerHTML = dictArr('plate').map(s=>`<option value="${esc(s)}">`).join('');
+  DICT_ORDER.forEach(renderChips);
+}
+
+function renderChips(kind){
+  const arr = dictArr(kind);
+  const box = $('chip-' + kind);
+  if(!box) return;
+  const cnt = $('cnt-' + kind);
+  if(cnt) cnt.textContent = arr.length ? arr.length + ' 条' : '';
+  box.innerHTML = arr.length
+    ? arr.map((v,i)=>`<span class="chip">${esc(v)}<span class="x" data-del="${kind}" data-i="${i}" title="删除">×</span></span>`).join('')
+    : '<span class="chip-empty">还没有，下面输入后点「添加」</span>';
+}
+
+function addFromInput(kind){
+  const el = $('add-' + kind);
+  if(!el) return;
+  const raw = el.value.trim();
+  if(!raw){ toast('先输入名称'); return; }
+  const n = dictAdd(kind, raw);
+  el.value = '';
+  if(!n){ toast('这些已经在档案里了'); return; }
+  saveJSON(K.P, P);
+  refreshDatalist();
+  toast('已添加 ' + n + ' 条');
+}
+
+/* ---- 选择面板 ---- */
+let pickKind = null;
+function openPicker(kind){
+  pickKind = kind;
+  const arr = dictArr(kind);
+  $('pickerH').textContent = '选择' + DICTS[kind].label;
+  $('pickerList').innerHTML = arr.length
+    ? arr.map(v=>`<div class="pi" data-v="${esc(v)}"><span>${esc(v)}</span><span class="pi-x">›</span></div>`).join('')
+    : '<div class="pi empty">档案还是空的，去「参数 → 基础档案」先添加</div>';
+  $('picker').classList.add('on');
+}
+function closePicker(){
+  $('picker').classList.remove('on');
+  pickKind = null;
+}
+
+document.addEventListener('click', e=>{
+  const pk = e.target.closest('.pk');
+  if(pk){ openPicker(pk.dataset.pick); return; }
+
+  const ad = e.target.closest('[data-add]');
+  if(ad){ addFromInput(ad.dataset.add); return; }
+
+  const del = e.target.closest('[data-del]');
+  if(del){
+    dictArr(del.dataset.del).splice(+del.dataset.i, 1);
+    saveJSON(K.P, P);
+    refreshDatalist();
+    return;
+  }
+
+  const pi = e.target.closest('.pi[data-v]');
+  if(pi && pickKind){
+    $(pickKind).value = pi.dataset.v;
+    closePicker();
+    render();
+    return;
+  }
+
+  if(e.target.id === 'picker' || e.target.id === 'pickerCancel') closePicker();
+});
+
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape') closePicker();
+  if(e.key === 'Enter'){
+    const t = e.target;
+    if(t && t.id && /^add-(supplier|mill|plate)$/.test(t.id)){
+      e.preventDefault();
+      addFromInput(t.id.slice(4));
+    }
+  }
+});
+
+/* ---- init ---- */
+(function init(){
+  // 首次打开本版：清掉上一版预填的业务数值（只清仍等于旧默认值的，手改过的不动）
+  if(P.presetCleared !== 1){
+    Object.keys(LEGACY_FILL).forEach(k=>{
+      if(Number(P[k]) === LEGACY_FILL[k]) P[k] = '';
+    });
+    P.presetCleared = 1;
+  }
+  // 日期跟随系统；其余业务字段不预填
+  $('date').value = today();
+  const val = k => (P[k] === 0 || P[k]) ? P[k] : '';
+  $('m0').value = val('m0');
+  $('pw').value = val('pw');
+  $('pd').value = val('pd');
+  $('pd3').value = val('pd');
+  $('freight').value = val('freight');
+  $('freight3').value = val('freight');
+  $('plog').value = val('plow');
+  $('mlog').value = val('mlog');
+  $('r').value = val('r');
+  $('process').value = val('process');
+  $('ticket').value = P.ticket || '13';
+  $('logTicket').value = 'free';
+  syncMode();
+  saveJSON(K.P, P);
+  refreshDatalist();
+  fillSettings();
+  renderRecords(); renderSummary();
+  render();
+})();
+</script>
+</body>
+</html>
