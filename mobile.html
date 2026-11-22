@@ -253,6 +253,43 @@ details .body{padding-bottom:2px}
 .imp .r b{font-weight:600;color:var(--ink)}
 .imp .r.hi b{color:var(--p)}
 .imp .r.warn b{color:var(--dang)}
+
+/* 纸厂参考价 */
+.pxn{font-size:11.5px;color:var(--muted);line-height:1.55;margin:9px 0 0}
+.pxn.off{color:#9a5a12}
+.pxg{margin:12px 0 2px;font-size:12.5px;font-weight:600;color:var(--ink)}
+.pxr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0}
+.pxr span{font-size:12.5px;color:var(--sub);min-width:0}
+.pxr span em{font-style:normal;font-size:11px;color:#9aa39a;margin-left:6px;white-space:nowrap}
+.pxr span em.man{color:#b0742a}
+.pxr input{
+  width:104px;height:38px;border:1px solid #dde2da;border-radius:9px;padding:0 10px;
+  font-size:15px;text-align:right;background:#fbfcf9;color:var(--ink);
+}
+.pxr input:focus{outline:none;border-color:var(--p2);background:#fff}
+/* 报价更新 */
+.pxu{font-size:11.5px;color:var(--muted);line-height:1.65;margin:2px 0 10px}
+.pxu.warn{color:#9a5a12}
+.mini{border:1px solid #cfe0d6;background:#fff;color:var(--p);font-size:11.5px;padding:3px 9px;border-radius:8px;line-height:1.4;font-family:inherit}
+.mini:active{background:#eef5f0}
+.ch-r{display:flex;align-items:center;gap:8px}
+.pxu b{color:var(--p)}
+.pxr-h{font-size:15px;font-weight:700;color:var(--ink)}
+.pxr-s{font-size:12px;color:var(--sub);line-height:1.75;margin-top:5px}
+.pxr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.pxr-row .m{font-size:12.5px;color:var(--ink);min-width:0;line-height:1.5}
+.pxr-row .m em{font-style:normal;color:var(--muted);margin-left:6px;font-size:11.5px}
+.pxr-row .v{font-size:14px;white-space:nowrap;text-align:right;color:var(--sub)}
+.pxr-row .v b{color:var(--ink)}
+.pxr-row .v i{font-style:normal;font-size:11px;margin-left:5px}
+.pxr-row .v i.up{color:#c0392b}
+.pxr-row .v i.dn{color:#2e7d5b}
+.ta{
+  width:100%;min-height:120px;border:1px solid var(--line);border-radius:11px;
+  padding:10px 12px;font-size:13px;line-height:1.65;font-family:inherit;
+  background:#fbfcf9;color:var(--ink);resize:vertical;
+}
+.ta:focus{outline:none;border-color:var(--p2);background:#fff}
 /* 台账工具行 / 筛选 */
 .tool{display:flex;gap:8px;margin:0 0 9px}
 .tool input{
@@ -378,8 +415,11 @@ details .body{padding-bottom:2px}
     </div>
 
     <div class="card">
-      <div class="card-h"><b>价格</b><span id="priceHint">元 / 湿吨</span></div>
-      <div class="g2">
+      <div class="card-h"><b>纸厂与价格</b><span class="ch-r"><span id="priceHint">元 / 湿吨</span><button class="mini" id="btnPxFetch2" type="button">查最新价</button></span></div>
+      <label class="f"><span>纸厂</span><select id="mill"></select></label>
+      <label class="f" style="margin-top:10px"><span>品类 / 等级</span><select id="cat"></select></label>
+      <div class="pxn" id="pxNote">选纸厂和品类，自动带出挂牌价；也可直接手填成交价</div>
+      <div class="g2" style="margin-top:10px">
         <label class="f" id="fPw"><span id="lbPw">采购价 <i>元/湿吨</i></span>
           <input type="text" inputmode="decimal" id="pw" placeholder="0"></label>
         <label class="f"><span>纸厂结算价 <i>元/绝干吨</i></span>
@@ -418,7 +458,7 @@ details .body{padding-bottom:2px}
       </div>
 
       <details id="detMore">
-        <summary>更多选项（票种 · 扣杂 · 费用 · 车号）</summary>
+        <summary>更多选项（票种 · 扣杂 · 费用 · 车号 · 供应商）</summary>
         <div class="body">
           <div class="g2">
             <label class="f" id="fTicket"><span>上游票种</span>
@@ -448,11 +488,6 @@ details .body{padding-bottom:2px}
             <label class="f"><span>供应商</span>
               <div class="sel">
                 <input type="text" id="supplier" placeholder="点这里选供应商" readonly>
-                <span class="cv" aria-hidden="true"></span>
-              </div></label>
-            <label class="f"><span>纸厂</span>
-              <div class="sel">
-                <input type="text" id="mill" placeholder="点这里选纸厂" readonly>
                 <span class="cv" aria-hidden="true"></span>
               </div></label>
           </div>
@@ -559,7 +594,7 @@ details .body{padding-bottom:2px}
     </div>
 
     <div class="card">
-      <div class="card-h"><b>基础档案</b><span>点「选」按钮直接调用</span></div>
+      <div class="card-h"><b>基础档案</b><span>点框直接选，不用手打</span></div>
 
       <details open>
         <summary>供应商</summary>
@@ -568,17 +603,6 @@ details .body{padding-bottom:2px}
           <div class="addrow">
             <input type="text" id="add-supplier" placeholder="名称，回车添加">
             <button data-add="supplier">添加</button>
-          </div>
-        </div>
-      </details>
-
-      <details>
-        <summary>纸厂</summary>
-        <div class="body">
-          <div class="chips" id="chips-mill"></div>
-          <div class="addrow">
-            <input type="text" id="add-mill" placeholder="名称，回车添加">
-            <button data-add="mill">添加</button>
           </div>
         </div>
       </details>
@@ -593,6 +617,26 @@ details .body{padding-bottom:2px}
           </div>
         </div>
       </details>
+    </div>
+
+    <div class="card" style="margin-top:11px">
+      <div class="card-h"><b>纸厂参考价</b><span id="pxAtTxt">采集 2026-11-20</span></div>
+      <div class="btns" style="margin:0 0 9px">
+        <button class="btn pri" id="btnPxFetch">一键查最新报价</button>
+        <button class="btn" id="btnPxPaste">粘贴日报更新</button>
+      </div>
+      <div class="pxu" id="pxUpd">还没查过。内置价截至 2026-11-20，点上面按钮可联网取最新一版。</div>
+      <div class="hint" style="margin:0">含税绝干到厂挂牌价，留空＝停收。品类名后面是这条价的<b>报价日期</b>；带 <b style="color:#b0742a">*</b> 的表示你手工改过，日期为改价那天。来源：广西太阳纸业国内木片部公众号、木片价格日报（2026-11-20 采集）。</div>
+      <details style="margin-top:8px">
+        <summary>展开修改（4 家纸厂）</summary>
+        <div class="body" id="pxBox"></div>
+        <label class="f" style="margin-top:10px"><span>整表采集日</span>
+          <input type="date" id="pxAt"></label>
+        <div class="btns" style="margin-top:10px">
+          <button class="btn" id="btnPxReset">恢复采集值</button>
+        </div>
+      </details>
+      <div class="hint">改完立即生效，不用点下面的「保存设置」。留空表示该品类停收。</div>
     </div>
 
     <div class="btns">
@@ -806,7 +850,8 @@ function quotaWarn(){
 const DEF = {
   m0:'', surtax:12, incomeTax:25, stamp:0.03,
   pw:'', pd:'', freight:'', plow:'', r:'', process:'', mlog:'',
-  ticket:'13', supList:[], millList:[], plateList:[]
+  ticket:'13', supList:[], millList:[], plateList:[],
+  px:{}, pxAt:'', pxSrc:'', pxMeta:{}, catAdd:{}
 };
 
 function load(key, def){
@@ -857,6 +902,12 @@ function toast(msg){
 }
 
 /* ---- 表单读写 ---- */
+function pxAtForInput(){
+  const m = millByName($('mill').value);
+  const cat = $('cat') ? $('cat').value : '';
+  return m && cat ? (pxEntry(m.id, cat).at || '') : '';
+}
+
 function readInp(){
   return {
     mode,
@@ -864,6 +915,8 @@ function readInp(){
     plate: $('plate').value.trim(),
     supplier: $('supplier').value.trim(),
     mill: $('mill').value.trim(),
+    cat: $('cat') ? $('cat').value : '',
+    pdAt: pxAtForInput(),
     ticket: $('ticket').value,
     wOut: num($('wOut').value),
     wIn: num($('wIn').value),
@@ -1003,6 +1056,8 @@ function detailHTML(inp, R){
     if(R.lossPct) h += lineHTML('运输损耗', (R.lossPct*100).toFixed(2) + '%');
   }
   if(inp.basis === 'out') h += lineHTML('采购计价依据', '出厂湿重 ' + fmt(inp.wOut,2) + ' 吨');
+  if(inp.mill) h += lineHTML('纸厂 / 品类',
+    inp.mill + (inp.cat ? ' · ' + inp.cat : '') + (inp.pdAt ? '　报价 ' + dFull(inp.pdAt) : ''));
   h += lineHTML('绝干吨 × 纸厂价', fmt(R.D,3) + ' 吨 × ¥' + fmt(R.pd,0));
   h += lineHTML('不含税收入', '¥' + fmt(R.revNet));
 
@@ -1080,7 +1135,7 @@ function recFiltered(){
     const i = r.inp || {};
     if(filtMode && String(i.mode) !== filtMode) return false;
     if(!q) return true;
-    return [i.plate, i.supplier, i.mill, i.date].join(' ').toLowerCase().includes(q);
+    return [i.plate, i.supplier, i.mill, i.cat, i.date].join(' ').toLowerCase().includes(q);
   }).sort((a,b)=>{
     const da = (a.inp||{}).date || '', db = (b.inp||{}).date || '';
     if(da !== db) return db.localeCompare(da);
@@ -1112,7 +1167,7 @@ function renderRec(){
     const neg = (o.net || 0) < 0;
     return '<div class="rec" data-id="' + r.id + '">'
       + '<div class="rec-l"><div class="rec-t">' + (i.date || '未填日期') + (i.plate ? ' · ' + esc(i.plate) : '') + '</div>'
-      + '<div class="rec-s">' + esc(sub) + ' · ' + md + ' · ' + (o.D ? fmt(o.D,3) + ' 吨' : '—') + '</div></div>'
+      + '<div class="rec-s">' + esc(sub) + (i.cat ? ' · ' + esc(i.cat) : '') + ' · ' + md + ' · ' + (o.D ? fmt(o.D,3) + ' 吨' : '—') + '</div></div>'
       + '<div class="rec-r"><b class="' + (neg ? 'neg' : '') + '">' + (neg ? '−' : '') + '¥' + fmt(Math.abs(o.net || 0)) + '</b>'
       + '<span>¥' + fmt(o.perDry || 0) + '/吨</span></div></div>';
   }).join('');
@@ -1145,7 +1200,7 @@ function receiptText(i, o){
   const L = [];
   L.push('木片每车结算  ' + (i.date || ''));
   L.push('车号：' + (i.plate || '—'));
-  L.push('供应商：' + (i.supplier || '—') + '　纸厂：' + (i.mill || '—'));
+  L.push('供应商：' + (i.supplier || '—') + '　纸厂：' + (i.mill || '—') + (i.cat ? '（' + i.cat + '）' : ''));
   L.push('模式：' + md);
   L.push('到厂湿重 ' + fmt(i.wIn,2) + ' 吨｜扣杂 ' + fmt(i.impurity||0,2) + ' 吨｜含水率 ' + fmt(i.m,2) + '%');
   L.push('结算绝干吨 ' + fmt(o.D,3) + ' 吨 × ¥' + fmt(o.pd,0));
@@ -1201,8 +1256,9 @@ function loadForEdit(r){
   $('date').value = i.date || today();
   $('plate').value = i.plate || '';
   $('supplier').value = i.supplier || '';
-  $('mill').value = i.mill || '';
   lockSel();
+  fillMillSelect(i.mill || '');
+  fillCatSelect(i.cat || '');
   sv('wIn', i.wIn); sv('m', i.m); sv('impurity', i.impurity); sv('wOut', i.wOut);
   if($('basis')) $('basis').value = i.basis || 'in';
   sv('pw', i.pw); sv('pd', i.pd3 || i.pd); sv('freight', i.freight);
@@ -1263,8 +1319,11 @@ $('btnSave').onclick = ()=>{
 $('btnClear').onclick = ()=>{
   ['wIn','wOut','m','pw','pd','freight','plog','mlog','r','process','freight3','logFreight','impurity','other','periodCost']
     .forEach(id=>{ $(id).value = ''; });
-  $('plate').value = ''; $('supplier').value = ''; $('mill').value = '';
+  $('plate').value = ''; $('supplier').value = '';
   lockSel();
+  fillMillSelect('');
+  fillCatSelect('');
+  $('pd').value = '';
   $('date').value = today();
   editingId = null; updateEditBar(null);
   render();
@@ -1277,6 +1336,562 @@ const DICTS = {
   mill:     {k:'millList', label:'纸厂'},
   plate:    {k:'plateList', label:'车号'}
 };
+
+/* ---- 固定纸厂与品类报价 ----------------------------------------------
+   口径：含税、绝干吨、到厂现汇（元/吨）。留空/0 表示该品类停收。
+   来源：广西太阳纸业国内木片部公众号（南宁 2026-11-01 挂牌、北海 2026-11-11）；
+        木片价格日报 2026-11-20（仙鹤 11-11、建晖 11-04/10-27）。
+   仅作报价参考，实际结算以厂方当日挂牌价、化验扣重与合同为准。 */
+const PX_AT = '2026-11-20';
+const MILLS = [
+  {id:'tynn', name:'太阳纸业（南宁）', cats:[
+    {n:'桉木片', p:0, at:'2026-11-01'},
+    {n:'桉木轴木片', p:1030, at:'2026-11-01'},
+    {n:'松木一级', p:1170, at:'2026-11-01'},
+    {n:'松木二级', p:1020, at:'2026-11-01'},
+    {n:'杂木片', p:990, at:'2026-11-01'},
+    {n:'广西相思木片', p:1170, at:'2026-11-01'},
+    {n:'苦楝木木片', p:1000, at:'2026-11-01'},
+    {n:'构木木片', p:1000, at:'2026-11-01'},
+    {n:'竹片A', p:990, at:'2026-11-01'},
+    {n:'竹片B', p:860, at:'2026-11-01'}
+  ]},
+  {id:'tybh', name:'太阳纸业（北海）', cats:[
+    {n:'桉木片A级', p:1180, at:'2026-11-11'},
+    {n:'桉木片B级', p:1200, at:'2026-11-11'},
+    {n:'桉木轴木片', p:1060, at:'2026-10-28'},
+    {n:'松木一级', p:1180, at:'2026-10-28'},
+    {n:'广西相思木片', p:1180, at:'2026-11-11'}
+  ]},
+  {id:'xh', name:'广西仙鹤新材料有限公司', cats:[
+    {n:'桉木片', p:1130, at:'2026-11-11'},
+    {n:'桉木片（3级）', p:1000, at:'2026-11-11'},
+    {n:'松木片', p:1130, at:'2026-11-11'},
+    {n:'松木片（2级）', p:1020, at:'2026-11-11'},
+    {n:'杂木片', p:980, at:'2026-11-11'},
+    {n:'桉木白皮', p:770, at:'2026-11-11'}
+  ]},
+  {id:'jh', name:'广西建晖纸业有限公司', cats:[
+    {n:'松木精片', p:1120, at:'2026-11-04'},
+    {n:'杂木精片', p:910, at:'2026-10-27'},
+    {n:'竹木精片', p:920, at:'2026-10-27'}
+  ]}
+];
+
+function millById(id){ return MILLS.find(m=> m.id === id) || null; }
+function millByName(n){ return MILLS.find(m=> m.name === n) || null; }
+/* 一条报价的取值与日期。
+   P.px 允许三种存法：旧版纯数字、{p,at}、{p,at,src:'net'}（联网/粘贴更新而来）。
+   manual = 用户自己在设置里改过；net = 来自报价更新。 */
+function pxEntry(mid, cat){
+  if(!mid || !cat) return {p:0, at:'', manual:false, net:false};
+  const key = mid + '|' + cat;
+  if(P.px && Object.prototype.hasOwnProperty.call(P.px, key)){
+    const raw = P.px[key];
+    if(raw && typeof raw === 'object'){
+      const p = (raw.p === '' || raw.p === null || raw.p === undefined) ? 0 : num(raw.p);
+      const net = raw.src === 'net';
+      return {p, at: raw.at || P.pxAt || PX_AT, manual: !net, net};
+    }
+    return {p: raw === '' || raw === null || raw === undefined ? 0 : num(raw),
+            at: P.pxAt || PX_AT, manual:true, net:false};
+  }
+  const m = millById(mid);
+  const c = m && m.cats.find(x=> x.n === cat);
+  return c ? {p:c.p, at:c.at, manual:false, net:false} : {p:0, at:'', manual:false, net:false};
+}
+/* 某纸厂的全部品类：内置 + 联网/粘贴新增的 */
+function catsOf(mill){
+  if(!mill) return [];
+  const extra = (P.catAdd && P.catAdd[mill.name]) || [];
+  if(!extra.length) return mill.cats;
+  const out = mill.cats.slice();
+  extra.forEach(c=>{ if(!out.some(x=> x.n === c.n)) out.push(c); });
+  return out;
+}
+function refPrice(mid, cat){ return pxEntry(mid, cat).p; }
+function refDate(mid, cat){ return pxEntry(mid, cat).at; }
+
+/* 报价日期的显示：short = 11/01（窄处用，跨年带年后缀 25/11/01），full = 2026-11-01 */
+function dShort(iso){
+  const s = String(iso || '');
+  if(s.length < 10) return '';
+  const y = String(new Date().getFullYear());
+  return s.slice(0,4) === y
+    ? s.slice(5,7) + '/' + s.slice(8,10)
+    : s.slice(2,4) + '/' + s.slice(5,7) + '/' + s.slice(8,10);
+}
+function dFull(iso){
+  const s = String(iso || '');
+  return s.length >= 10 ? s.slice(0,10) : s;
+}
+
+function fillMillSelect(keep){
+  const sel = $('mill');
+  if(!sel) return;
+  const cur = keep === undefined ? sel.value : keep;
+  let h = '<option value="">选择纸厂</option>';
+  MILLS.forEach(m=>{ h += '<option value="' + esc(m.name) + '">' + esc(m.name) + '</option>'; });
+  if(cur && !MILLS.some(m=> m.name === cur)) h += '<option value="' + esc(cur) + '">' + esc(cur) + '（旧记录）</option>';
+  sel.innerHTML = h;
+  sel.value = cur || '';
+}
+
+function fillCatSelect(keep){
+  const sel = $('cat');
+  if(!sel) return;
+  const m = millByName($('mill').value);
+  if(!m){
+    sel.innerHTML = '<option value="">先选纸厂</option>';
+    sel.disabled = true;
+    updatePxNote();
+    return;
+  }
+  sel.disabled = false;
+  let h = '<option value="">选择品类</option>';
+  catsOf(m).forEach(c=>{
+    const e = pxEntry(m.id, c.n);
+    const dt = dShort(e.at);
+    const tag = e.p > 0 ? dt : ('停收' + (dt ? ' ' + dt : ''));
+    h += '<option value="' + esc(c.n) + '">' + esc(c.n)
+      + (tag ? '（' + tag + '）' : '') + '</option>';
+  });
+  if(keep && !catsOf(m).some(c=> c.n === keep)) h += '<option value="' + esc(keep) + '">' + esc(keep) + '（原记录）</option>';
+  sel.innerHTML = h;
+  sel.value = keep || '';
+  updatePxNote();
+}
+
+function updatePxNote(){
+  const el = $('pxNote');
+  if(!el) return;
+  const m = millByName($('mill').value);
+  const cat = $('cat') ? $('cat').value : '';
+  if(!m){
+    el.textContent = '选纸厂和品类，自动带出挂牌价与报价日期；也可直接手填成交价';
+    el.className = 'pxn';
+    return;
+  }
+  const c = catsOf(m).find(x=> x.n === cat);
+  if(!c){
+    el.textContent = '选一个品类，自动带出该厂挂牌价和它的报价日期';
+    el.className = 'pxn';
+    return;
+  }
+  const e = pxEntry(m.id, c.n);
+  const d = dFull(e.at);
+  if(e.p <= 0){
+    el.textContent = '该品类' + (d ? ' ' + d + ' 起' : '') + '停收，如已复收请手填价格';
+    el.className = 'pxn off';
+    return;
+  }
+  el.textContent = '参考价 ' + fmt(e.p, 0) + ' 元/绝干吨 · '
+    + (d ? (e.manual ? '手工价，' + d + ' 更新' : d + ' 挂牌') : '未标日期')
+    + ' · 含税到厂，可改';
+  el.className = 'pxn';
+}
+
+/* 设置页：reference price editor */
+function renderPx(){
+  const box = $('pxBox');
+  if(!box) return;
+  box.innerHTML = MILLS.map(m=>{
+    const rows = catsOf(m).map(c=>{
+      const e = pxEntry(m.id, c.n);
+      const dt = dShort(e.at);
+      return '<label class="pxr"><span>' + esc(c.n)
+        + (dt ? '<em class="' + (e.manual ? 'man' : '') + '">' + dt + (e.manual ? '*' : '') + '</em>' : '')
+        + '</span>'
+        + '<input type="text" inputmode="decimal" data-px="' + esc(m.id + '|' + c.n) + '"'
+        + ' placeholder="停收" value="' + (e.p > 0 ? e.p : '') + '"></label>';
+    }).join('');
+    return '<div class="pxg">' + esc(m.name) + '</div>' + rows;
+  }).join('');
+  if($('pxAt')) $('pxAt').value = P.pxAt || PX_AT;
+  if($('pxAtTxt')) $('pxAtTxt').textContent = '采集 ' + (P.pxAt || PX_AT);
+}
+
+$('mill').onchange = ()=>{
+  fillCatSelect('');
+  $('pd').value = '';
+  updatePxNote();
+  render();
+};
+$('cat').onchange = ()=>{
+  const m = millByName($('mill').value);
+  const c = m && m.cats.find(x=> x.n === $('cat').value);
+  if(c){
+    const p = refPrice(m.id, c.n);
+    $('pd').value = p > 0 ? p : '';
+  }
+  updatePxNote();
+  render();
+};
+$('pxBox').addEventListener('change', e=>{
+  const el = e.target.closest('[data-px]');
+  if(!el) return;
+  P.px = Object.assign({}, P.px || {});
+  const p = el.value.trim() === '' ? 0 : num(el.value);
+  P.px[el.dataset.px] = {p, at: today()};
+  save(K.P, P);
+  renderPx();
+  updatePxNote();
+  toast('参考价已更新 · 报价日 ' + today());
+});
+$('pxAt').onchange = ()=>{
+  P.pxAt = $('pxAt').value || PX_AT;
+  save(K.P, P);
+  renderPx();
+};
+$('btnPxReset').onclick = ()=>{
+  if(!confirm('把 4 家纸厂的参考价恢复成采集值？手工改过的价格会丢掉。')) return;
+  P.px = {};
+  P.pxAt = PX_AT;
+  save(K.P, P);
+  renderPx();
+  updatePxNote();
+  toast('已恢复采集值');
+};
+
+/* ---- 报价更新：一键联网 / 粘贴日报 -------------------------------------
+   数据源是一个 JSON（默认同目录 prices.json），结构：
+   { at:'2026-11-16', src:'木讯网 木片市场调研日报',
+     mills:[{name:'广西北海', cats:[{n:'松木一级', p:1180, at:'2026-11-16'}]}] }
+   纸厂按 name 或 id 匹配；品类按名称匹配，没见过的自动加进 P.catAdd。 */
+
+const PX_SRC_DEF = 'prices.json';
+let _pxUndo = null;
+
+/* 品类别名：日报里的简写与正文写法 */
+const CAT_ALIAS = {
+  '广西相思木片': ['相思木片', '相思'],
+  '桉木轴木片':   ['桉木轴木片', '桉木轴', '轴木片'],
+  '桉木片A级':    ['桉木片A级', '桉木片A', '桉木A级', 'A级桉木片'],
+  '桉木片B级':    ['桉木片B级', '桉木片B', '桉木B级', 'B级桉木片'],
+  '桉木片（3级）': ['桉木片3级', '桉木片（3级）', '桉木片(3级)'],
+  '松木片（2级）': ['松木片2级', '松木片（2级）', '松木片(2级)'],
+  '松木一级':     ['松木一级', '松木1级', '松一'],
+  '松木二级':     ['松木二级', '松木2级', '松二'],
+  '竹片A':        ['竹片A', '竹A'],
+  '竹片B':        ['竹片B', '竹B'],
+  '苦楝木木片':   ['苦楝木片', '苦楝木木片'],
+  '构木木片':     ['构木木片', '构木片'],
+  '松木精片':     ['松木精片', '松精片'],
+  '杂木精片':     ['杂木精片', '杂精片']
+};
+
+function pxSrcUrl(){
+  const s = String(P.pxSrc || '').trim();
+  return s || PX_SRC_DEF;
+}
+function absUrl(u){
+  try{ return new URL(u, location.href).href; }catch(e){ return u; }
+}
+
+async function pxFetchLatest(){
+  if(typeof fetch !== 'function') throw new Error('这个浏览器不支持联网更新');
+  if(location.protocol === 'file:'){
+    throw new Error('本地文件打开时不能联网，请用 https 地址打开，或改用「粘贴日报更新」');
+  }
+  const url = absUrl(pxSrcUrl());
+  const bust = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+  const r = await fetch(bust, {cache:'no-store'});
+  if(!r.ok) throw new Error('取不到报价文件（HTTP ' + r.status + '）');
+  const d = await r.json();
+  if(!d || !Array.isArray(d.mills)) throw new Error('报价文件格式不对，缺 mills 列表');
+  return d;
+}
+
+/* 名称归一：去空格、全角括号转半角，用于宽松匹配 */
+function pxNorm(s){
+  return String(s || '').replace(/\s+/g, '')
+    .replace(/（/g, '(').replace(/）/g, ')')
+    .replace(/[·・]/g, '').toLowerCase();
+}
+
+/* 归一化同时记住每个字符在原串中的位置，便于回切片 */
+function normMap(s){
+  let out = '', idx = [];
+  for(let i = 0; i < s.length; i++){
+    const ch = s[i];
+    if(/\s/.test(ch)) continue;
+    out += pxNorm(ch);
+    idx.push(i);
+  }
+  return {out, idx};
+}
+
+/* 在一行文字里找该厂的一个品类；返回品类与它在原串中的起止 */
+function findCat(line, cats){
+  const {out, idx} = normMap(line);
+  const cand = [];
+  cats.forEach(c=>{
+    if(/原木|湿吨|木屑|板皮/.test(c.n)) return;
+    const names = [c.n].concat(CAT_ALIAS[c.n] || []);
+    names.forEach(nm=>{
+      const n = pxNorm(nm);
+      if(n) cand.push({c, n});
+    });
+  });
+  cand.sort((a,b)=> b.n.length - a.n.length);
+  for(const k of cand){
+    let pos = out.indexOf(k.n);
+    while(pos >= 0){
+      const nxt = out[pos + k.n.length] || '';
+      /* 短名（≤3 字）后面紧跟 a/b 或数字，说明是更长品类的前半截，跳过 */
+      if(k.n.length <= 3 && /[a-z0-9]/.test(nxt)){
+        pos = out.indexOf(k.n, pos + 1);
+        continue;
+      }
+      const s = idx[pos], e = idx[pos + k.n.length - 1] + 1;
+      return {cat:k.c, s, e};
+    }
+  }
+  return null;
+}
+
+/* 一行文字属于哪家厂；不是我们的 4 家就返回 null。
+   东莞建晖、玖龙、植护、贵糖等必须排除，别把别家价算进来。 */
+function pxMillOfLine(line){
+  if(/东莞|玖龙|植护|贵糖|石首|山东太阳|骏泰|岳阳|五洲|联盛|冠豪|晨鸣|聊城|濮阳|焦作|新亚|唐山|黄冈|金桂|亚太森博/.test(line)) return null;
+  if(/广西南宁|南宁太阳|太阳纸业\s*[（(]\s*南宁/.test(line)) return millByName('太阳纸业（南宁）');
+  if(/广西北海|北海太阳|太阳纸业\s*[（(]\s*北海/.test(line)) return millByName('太阳纸业（北海）');
+  if(/仙鹤/.test(line)) return millByName('广西仙鹤新材料有限公司');
+  if(/广西建晖|建晖\s*[（(]\s*广西/.test(line)) return millByName('广西建晖纸业有限公司');
+  return null;
+}
+
+/* 文本里的基准日期：优先 2026年11月16日，其次 11 月 16 日 */
+function pxBaseDate(txt){
+  const s = String(txt || '');
+  let m = s.match(/(20\d{2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+  if(m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+  m = s.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+  if(m){
+    const now = new Date();
+    const mo = +m[1];
+    const yy = mo > now.getMonth() + 2 ? now.getFullYear() - 1 : now.getFullYear();
+    return yy + '-' + String(mo).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
+  }
+  return '';
+}
+
+/* 从一段文字里抽出「厂 × 品类 × 价格 × 日期」。
+   支持表格（制表符/空格分隔），也支持正文里一行写多个品类。 */
+function parsePriceText(txt){
+  const raw = String(txt || '').replace(/\r/g, '');
+  const base = pxBaseDate(raw);
+  const found = new Map();
+
+  raw.split(/[\n；;。]/).forEach(seg=>{
+    const line = seg.trim();
+    if(!line || line.length > 400) return;
+    const mill = pxMillOfLine(line);
+    if(!mill) return;
+    const cats = catsOf(mill);
+    let rest = line;
+    for(let guard = 0; guard < 16; guard++){
+      const hit = findCat(rest, cats);
+      if(!hit) break;
+      const tail = rest.slice(hit.e, hit.e + 26);
+      const am = tail.match(/(?:→|->|⇒)\s*(\d{3,4})/);
+      const pm = am || tail.match(/(\d{3,4})/);
+      rest = rest.slice(0, hit.s) + rest.slice(hit.e);
+      if(!pm) continue;
+      const p = +pm[1];
+      if(!(p >= 300 && p <= 3000)) continue;
+      const dm = line.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/)
+             || line.match(/(?:^|\s)(\d{1,2})\s*\/\s*(\d{1,2})(?=\s|$)/);
+      let at = base;
+      if(dm){
+        const y = base ? +base.slice(0,4) : new Date().getFullYear();
+        at = y + '-' + String(dm[1]).padStart(2,'0') + '-' + String(dm[2]).padStart(2,'0');
+      }
+      found.set(mill.id + '|' + hit.cat.n, {mill, cat:hit.cat.n, p, at});
+    }
+  });
+  return [...found.values()];
+}
+
+/* 把一批报价写进 P。返回摘要，供面板显示和撤销。 */
+function applyPxItems(items, meta){
+  meta = meta || {};
+  const snap = {
+    px: JSON.parse(JSON.stringify(P.px || {})),
+    catAdd: JSON.parse(JSON.stringify(P.catAdd || {})),
+    pxAt: P.pxAt || '', pxMeta: JSON.parse(JSON.stringify(P.pxMeta || {}))
+  };
+  const changed = [], added = [], same = [];
+  const seen = new Set();
+
+  items.forEach(it=>{
+    let mill = it.mill || millById(it.mid) || millByName(it.millName);
+    if(!mill) return;
+    const name = String(it.cat || '').trim();
+    if(!name) return;
+    const key = mill.id + '|' + name;
+    if(seen.has(key)) return;
+    seen.add(key);
+
+    const p = num(it.p);
+    const at = String(it.at || meta.at || '').slice(0, 10);
+    const before = pxEntry(mill.id, name);
+    const isNewCat = !mill.cats.some(x=> x.n === name);
+
+    if(isNewCat){
+      P.catAdd = P.catAdd || {};
+      const add = (P.catAdd[mill.name] = P.catAdd[mill.name] || []);
+      if(!add.some(x=> x.n === name)) add.push({n:name, p, at});
+      added.push({mill:mill.name, cat:name, to:p, at});
+    }
+    if(!isNewCat && before.p === p && dFull(before.at) === at){
+      same.push({mill:mill.name, cat:name, p, at});
+    } else {
+      changed.push({mill:mill.name, cat:name, from:before.p, to:p, at, isNewCat});
+    }
+    P.px = Object.assign({}, P.px || {});
+    P.px[key] = {p, at, src:'net'};
+  });
+
+  const stamps = items.map(it=> String(it.at || meta.at || '')).filter(s=> s.length >= 10).sort();
+  const at = stamps.length ? stamps[stamps.length - 1].slice(0, 10) : (meta.at || '');
+  if(at) P.pxAt = at;
+  P.pxMeta = {
+    at: at || (P.pxMeta && P.pxMeta.at) || '',
+    src: meta.src || '',
+    by: meta.by || '',
+    checked: new Date().toISOString(),
+    n: changed.length + added.length
+  };
+  save(K.P, P);
+  _pxUndo = snap;
+  return {at, src: meta.src || '', changed, added, same};
+}
+
+/* 摘要面板 */
+function pxResultHTML(res){
+  const n = res.changed.length, a = res.added.length, s = res.same.length;
+  let h = '<div class="pxr-h">更新到 ' + esc(dFull(res.at) || '未标日期') + '</div>';
+  h += '<div class="pxr-s">' + (res.src ? esc(res.src) + '<br>' : '')
+    + '价格变动 <b>' + n + '</b> 项 · 新增品类 <b>' + a + '</b> 项 · 未变 <b>' + s + '</b> 项</div>';
+  if(n){
+    h += '<div class="sheet-t">价格变动</div>';
+    h += res.changed.map(c=>{
+      const up = c.to > c.from;
+      const diff = c.to - c.from;
+      return '<div class="pxr-row"><span class="m">' + esc(c.mill) + '<em>' + esc(c.cat) + '</em></span>'
+        + '<span class="v">' + (c.from > 0 ? fmt(c.from,0) + ' → ' : '') + '<b>' + fmt(c.to,0) + '</b>'
+        + (diff ? '<i class="' + (up ? 'up' : 'dn') + '">' + (up ? '▲' : '▼') + fmt(Math.abs(diff),0) + '</i>' : '')
+        + '</span></div>';
+    }).join('');
+  }
+  if(a){
+    h += '<div class="sheet-t">新增品类</div>';
+    h += res.added.map(c=> '<div class="pxr-row"><span class="m">' + esc(c.mill) + '<em>' + esc(c.cat)
+      + '</em></span><span class="v"><b>' + fmt(c.to,0) + '</b></span></div>').join('');
+  }
+  if(!n && !a) h += '<div class="hint" style="margin-top:10px">价格和本机一致，没有需要改的。</div>';
+  h += '<div class="btns" style="margin-top:14px">'
+    + '<button class="btn" data-act="pxundo">撤销这次更新</button>'
+    + '<button class="btn pri" data-act="pxclose">知道了</button></div>';
+  return h;
+}
+
+function pxShowResult(res){
+  openSheet('报价已更新', pxResultHTML(res));
+  renderPx(); updatePxNote(); renderPxUpd();
+  toast(res.changed.length || res.added.length
+    ? '已更新 ' + (res.changed.length + res.added.length) + ' 项 · 报价日 ' + (dFull(res.at) || '未标')
+    : '已是最新，没有变化');
+}
+
+function renderPxUpd(){
+  const el = $('pxUpd');
+  if(!el) return;
+  const m = P.pxMeta || {};
+  if(!m.checked){
+    el.className = 'pxu';
+    el.textContent = '还没查过。内置价截至 ' + PX_AT + '，点上面按钮可联网取最新一版。';
+    return;
+  }
+  const when = String(m.checked).slice(0, 16).replace('T', ' ');
+  const days = m.at ? Math.floor((Date.now() - new Date(m.at + 'T00:00:00').getTime()) / 86400000) : null;
+  const stale = days !== null && days >= 4;
+  el.className = 'pxu' + (stale ? ' warn' : '');
+  el.innerHTML = '上次更新：<b>' + esc(dFull(m.at) || '—') + '</b> 的报价（' + esc(when) + ' 获取'
+    + (m.src ? '，来源 ' + esc(m.src) : '') + '）'
+    + (stale ? '<br>已经是 ' + days + ' 天前的价，建议用「粘贴日报更新」贴一份最新日报。' : '');
+}
+
+/* 粘贴面板 */
+function pxOpenPaste(){
+  const box = '<div class="hint" style="margin:0 0 8px">把日报里「纸厂 品类 价格 日期」那几行复制过来，或整篇粘进来也行。只认广西这 4 家厂，东莞建晖、玖龙等会自动跳过。</div>'
+    + '<textarea id="pxPasteTa" class="ta" placeholder="例：&#10;广西北海 桉木片A级 1180 11月16日&#10;广西南宁 松木一级 1170 11月16日"></textarea>'
+    + '<div class="btns" style="margin-top:12px"><button class="btn pri" data-act="pxparse">解析并更新</button></div>';
+  openSheet('粘贴日报更新', box);
+}
+
+async function pxDoFetch(btn){
+  if(!btn) return;
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = '查询中…';
+  try{
+    const d = await pxFetchLatest();
+    const items = [];
+    (d.mills || []).forEach(m=>{
+      const mill = millByName(m.name) || millById(m.id);
+      if(!mill) return;
+      (m.cats || []).forEach(c=>{
+        items.push({mill, cat:c.n, p:c.p, at:c.at || d.at});
+      });
+    });
+    if(!items.length) throw new Error('报价文件里没有可用的品类');
+    const res = applyPxItems(items, {at:d.at, src:d.src || '联网报价', by:'net'});
+    pxShowResult(res);
+  }catch(e){
+    openSheet('没查成', '<div class="hint" style="margin:0">' + esc(e.message || '未知错误')
+      + '</div><div class="hint">本机价格照旧可用，不影响测算。<br>也可以点「粘贴日报更新」，把日报文字粘进来更新。</div>'
+      + '<div class="btns" style="margin-top:12px"><button class="btn" data-act="pxclose">关闭</button>'
+      + '<button class="btn pri" data-act="pxpaste">改用粘贴更新</button></div>');
+  }finally{
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+if($('btnPxFetch')) $('btnPxFetch').onclick = ()=> pxDoFetch($('btnPxFetch'));
+if($('btnPxFetch2')) $('btnPxFetch2').onclick = ()=> pxDoFetch($('btnPxFetch2'));
+
+$('btnPxPaste').onclick = ()=> pxOpenPaste();
+
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-act]');
+  if(!el) return;
+  const a = el.dataset.act;
+  if(a === 'pxpaste'){ pxOpenPaste(); return; }
+  if(a === 'pxclose'){ closeSheet(); return; }
+  if(a === 'pxparse'){
+    const ta = $('pxPasteTa');
+    const txt = ta ? ta.value : '';
+    const items = parsePriceText(txt);
+    if(!items.length){
+      toast('没认出这 4 家厂的价格，检查文字里有没有厂名和数字');
+      return;
+    }
+    const res = applyPxItems(items, {at:pxBaseDate(txt), src:'粘贴日报', by:'paste'});
+    pxShowResult(res);
+    return;
+  }
+  if(a === 'pxundo'){
+    if(!_pxUndo){ closeSheet(); return; }
+    P.px = _pxUndo.px; P.catAdd = _pxUndo.catAdd;
+    P.pxAt = _pxUndo.pxAt; P.pxMeta = _pxUndo.pxMeta;
+    save(K.P, P);
+    _pxUndo = null;
+    closeSheet();
+    renderPx(); updatePxNote(); renderPxUpd();
+    toast('已撤销，回到更新前的价格');
+  }
+});
+
 function arrOf(kind){
   const key = DICTS[kind].k;
   if(!Array.isArray(P[key])) P[key] = [];
@@ -1334,7 +1949,7 @@ function openPicker(kind){
 }
 
 function lockSel(kinds){
-  (kinds ? [].concat(kinds) : ['plate','supplier','mill']).forEach(k=>{
+  (kinds ? [].concat(kinds) : ['plate','supplier']).forEach(k=>{
     const el = $(k);
     if(!el) return;
     el.readOnly = true;
@@ -1422,6 +2037,10 @@ function fillSet(){
   set('sSurtax', P.surtax); set('sItax', P.incomeTax); set('sStamp', P.stamp);
   if($('sTicket')) $('sTicket').value = P.ticket || '13';
   renderChips();
+  fillMillSelect();
+  fillCatSelect($('cat') ? $('cat').value : '');
+  renderPx();
+  renderPxUpd();
   dataInfo();
 }
 
@@ -1445,7 +2064,9 @@ $('btnSaveSet').onclick = ()=>{
     pw: nb('sPw'), pd: nb('sPd'), freight: nb('sFreight'),
     plow: nb('sPlow'), r: nb('sR'), process: nb('sProcess'), mlog: nb('sMlog'),
     ticket: $('sTicket').value || P.ticket || '13',
-    supList: P.supList, millList: P.millList, plateList: P.plateList
+    supList: P.supList, millList: P.millList, plateList: P.plateList,
+    px: P.px || {}, pxAt: P.pxAt || '',
+    pxSrc: P.pxSrc || '', pxMeta: P.pxMeta || {}, catAdd: P.catAdd || {}
   };
   save(K.P, P);
   applyParams();
@@ -1537,12 +2158,12 @@ function download(name, text, type){
 }
 function exportDetail(){
   if(!REC.length){ toast('没有记录可导出'); return; }
-  const head = ['日期','车号','供应商','纸厂','模式','上游票种','出厂湿重','到厂湿重','含水率%','扣杂吨','结算湿吨','绝干吨',
+  const head = ['日期','车号','供应商','纸厂','品类','模式','上游票种','出厂湿重','到厂湿重','含水率%','扣杂吨','结算湿吨','绝干吨',
     '采购含税','采购进项','运费含税','运费进项','加工费','其他','销项税','进项合计','应纳增值税','不含税收入','不含税毛利','含税毛利',
     '附加','印花','所得税','净利','每绝干吨净利','增值税税负率','全口径税负率','净利率'];
   const rows = REC.map(r=>{
     const i = r.inp || {}, o = r.out || {}, ex = o.extra || {};
-    return [i.date, i.plate, i.supplier, i.mill, '模式' + i.mode,
+    return [i.date, i.plate, i.supplier, i.mill, i.cat || '', '模式' + i.mode,
       i.mode === '3' ? ('原木' + (i.logTicket === '9' ? '9%' : '免税')) : (i.ticket + '%'),
       i.wOut, i.wIn, i.m, i.impurity, ex.settleWet || '', (o.D || 0).toFixed(3),
       (ex.buyAmt ?? ex.logAmt ?? 0).toFixed(2), (ex.buyIn ?? ex.logIn ?? 0).toFixed(2),
