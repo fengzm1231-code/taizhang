@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#1e5442">
-<meta name="application-name" content="木片每车测算">
-<meta name="apple-mobile-web-app-title" content="木片每车测算">
-<title>木片每车测算</title>
+<meta name="application-name" content="木片台账">
+<meta name="apple-mobile-web-app-title" content="木片台账">
+<title>木片台账</title>
 <style>
 :root{
   --bg:#f4f6f3; --card:#fff; --line:#e4e8e1; --line2:#eef1ec;
@@ -32,7 +32,7 @@ header{
   padding:calc(8px + env(safe-area-inset-top)) 14px 0;
 }
 .hrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.brand{font-size:15px;font-weight:700;letter-spacing:.2px;color:var(--p)}
+.brand{font-size:15px;font-weight:700;letter-spacing:.2px;color:var(--p);white-space:nowrap}
 .brand em{font-style:normal;font-weight:400;font-size:11.5px;color:var(--muted);margin-left:6px}
 .tabs{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
 .tabs button{
@@ -275,6 +275,7 @@ details .body{padding-bottom:2px}
 .ch-r{display:flex;align-items:center;gap:8px}
 .pxu b{color:var(--p)}
 .pxr-h{font-size:15px;font-weight:700;color:var(--ink)}
+.pxr-h .pxr-hop{font-weight:400;font-size:11.5px;color:var(--muted);margin-left:6px}
 .pxr-s{font-size:12px;color:var(--sub);line-height:1.75;margin-top:5px}
 .pxr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
 .pxr-row .m{font-size:12.5px;color:var(--ink);min-width:0;line-height:1.5}
@@ -283,6 +284,7 @@ details .body{padding-bottom:2px}
 .pxr-row .v b{color:var(--ink)}
 .pxr-row .v i{font-style:normal;font-size:11px;margin-left:5px}
 .pxr-row .v i.up{color:#c0392b}
+.pxr-row .v i.dt{color:var(--muted);font-family:inherit}
 .pxr-row .v i.dn{color:#2e7d5b}
 .ta{
   width:100%;min-height:120px;border:1px solid var(--line);border-radius:11px;
@@ -361,7 +363,7 @@ details .body{padding-bottom:2px}
 
 <header>
   <div class="hrow">
-    <div class="brand">木片每车测算<em>离线可用</em></div>
+    <div class="brand">木片台账<em>鹏淼国贸林业部专用</em></div>
   </div>
   <div class="tabs">
     <button data-nav="calc" class="on">测算</button>
@@ -1339,9 +1341,13 @@ const DICTS = {
 
 /* ---- 固定纸厂与品类报价 ----------------------------------------------
    口径：含税、绝干吨、到厂现汇（元/吨）。留空/0 表示该品类停收。
-   来源：广西太阳纸业国内木片部公众号（南宁 2026-11-01 挂牌、北海 2026-11-11）；
-        木片价格日报 2026-11-20（仙鹤 11-11、建晖 11-04/10-27）。
-   仅作报价参考，实际结算以厂方当日挂牌价、化验扣重与合同为准。 */
+   来源：① 太阳纸业（南宁/北海）国内木片部公众号厂方挂牌；
+        ② 广西建晖、广西仙鹤取自《木片价格日报》转述的厂方挂牌
+          （仙鹤 6 档为 2026-11-11 挂牌，其中桉木片 1130 经 11-17
+           厂方报价复核仍持平，故报价日记为 11-17）；
+        ③ 木讯网《木片市场调研日报》2026-11-20 用于复核广西四厂。
+   注意：仙鹤不在木讯网日报的监测名单内，其价位属二手转述，可能滞后或
+        有转述误差；实际结算以厂方当日挂牌价、化验扣重与合同为准。 */
 const PX_AT = '2026-11-20';
 const MILLS = [
   {id:'tynn', name:'太阳纸业（南宁）', cats:[
@@ -1364,7 +1370,7 @@ const MILLS = [
     {n:'广西相思木片', p:1180, at:'2026-11-11'}
   ]},
   {id:'xh', name:'广西仙鹤新材料有限公司', cats:[
-    {n:'桉木片', p:1130, at:'2026-11-11'},
+    {n:'桉木片', p:1130, at:'2026-11-17'},
     {n:'桉木片（3级）', p:1000, at:'2026-11-11'},
     {n:'松木片', p:1130, at:'2026-11-11'},
     {n:'松木片（2级）', p:1020, at:'2026-11-11'},
@@ -1721,7 +1727,7 @@ function applyPxItems(items, meta){
     catAdd: JSON.parse(JSON.stringify(P.catAdd || {})),
     pxAt: P.pxAt || '', pxMeta: JSON.parse(JSON.stringify(P.pxMeta || {}))
   };
-  const changed = [], added = [], same = [];
+  const changed = [], added = [], same = [], dated = [];
   const seen = new Set();
 
   items.forEach(it=>{
@@ -1746,6 +1752,9 @@ function applyPxItems(items, meta){
     }
     if(!isNewCat && before.p === p && dFull(before.at) === at){
       same.push({mill:mill.name, cat:name, p, at});
+    } else if(!isNewCat && before.p === p){
+      /* 价没动、只是纸厂重新报了一次（或日报把报价日推后了）——不算调价 */
+      dated.push({mill:mill.name, cat:name, p, at, fromAt: dFull(before.at)});
     } else {
       changed.push({mill:mill.name, cat:name, from:before.p, to:p, at, isNewCat});
     }
@@ -1758,22 +1767,28 @@ function applyPxItems(items, meta){
   if(at) P.pxAt = at;
   P.pxMeta = {
     at: at || (P.pxMeta && P.pxMeta.at) || '',
+    srcAt: meta.at || '',
     src: meta.src || '',
     by: meta.by || '',
     checked: new Date().toISOString(),
-    n: changed.length + added.length
+    n: changed.length + dated.length + added.length
   };
   save(K.P, P);
   _pxUndo = snap;
-  return {at, src: meta.src || '', changed, added, same};
+  return {at, srcAt: meta.at || '', src: meta.src || '', changed, dated, added, same};
 }
 
 /* 摘要面板 */
 function pxResultHTML(res){
   const n = res.changed.length, a = res.added.length, s = res.same.length;
-  let h = '<div class="pxr-h">更新到 ' + esc(dFull(res.at) || '未标日期') + '</div>';
+  const dt = (res.dated || []).length;
+  let h = '<div class="pxr-h">更新到 ' + esc(dFull(res.at) || '未标日期')
+    + (res.srcAt && dFull(res.srcAt) !== dFull(res.at) ? '<span class="pxr-hop">· ' + esc(dShort(res.srcAt)) + ' 日报</span>' : '')
+    + '</div>';
   h += '<div class="pxr-s">' + (res.src ? esc(res.src) + '<br>' : '')
-    + '价格变动 <b>' + n + '</b> 项 · 新增品类 <b>' + a + '</b> 项 · 未变 <b>' + s + '</b> 项</div>';
+    + '价格变动 <b>' + n + '</b> 项'
+    + (dt ? ' · 仅刷新报价日 <b>' + dt + '</b> 项' : '')
+    + ' · 新增品类 <b>' + a + '</b> 项 · 未变 <b>' + s + '</b> 项</div>';
   if(n){
     h += '<div class="sheet-t">价格变动</div>';
     h += res.changed.map(c=>{
@@ -1790,7 +1805,13 @@ function pxResultHTML(res){
     h += res.added.map(c=> '<div class="pxr-row"><span class="m">' + esc(c.mill) + '<em>' + esc(c.cat)
       + '</em></span><span class="v"><b>' + fmt(c.to,0) + '</b></span></div>').join('');
   }
-  if(!n && !a) h += '<div class="hint" style="margin-top:10px">价格和本机一致，没有需要改的。</div>';
+  if(dt){
+    h += '<div class="sheet-t">报价日刷新（价未变）</div>';
+    h += res.dated.map(c=> '<div class="pxr-row"><span class="m">' + esc(c.mill) + '<em>' + esc(c.cat) + '</em></span>'
+      + '<span class="v"><b>' + fmt(c.p,0) + '</b><i class="dt">'
+      + esc(dShort(c.fromAt) || '—') + ' → ' + esc(dShort(c.at) || '—') + '</i></span></div>').join('');
+  }
+  if(!n && !a && !dt) h += '<div class="hint" style="margin-top:10px">价格和本机一致，没有需要改的。</div>';
   h += '<div class="btns" style="margin-top:14px">'
     + '<button class="btn" data-act="pxundo">撤销这次更新</button>'
     + '<button class="btn pri" data-act="pxclose">知道了</button></div>';
@@ -1800,9 +1821,8 @@ function pxResultHTML(res){
 function pxShowResult(res){
   openSheet('报价已更新', pxResultHTML(res));
   renderPx(); updatePxNote(); renderPxUpd();
-  toast(res.changed.length || res.added.length
-    ? '已更新 ' + (res.changed.length + res.added.length) + ' 项 · 报价日 ' + (dFull(res.at) || '未标')
-    : '已是最新，没有变化');
+  const n2 = res.changed.length + (res.dated || []).length + res.added.length;
+  toast(n2 ? '已更新 ' + n2 + ' 项 · 报价日 ' + (dFull(res.at) || '未标') : '已是最新，没有变化');
 }
 
 function renderPxUpd(){
@@ -1816,10 +1836,13 @@ function renderPxUpd(){
   }
   const when = String(m.checked).slice(0, 16).replace('T', ' ');
   const days = m.at ? Math.floor((Date.now() - new Date(m.at + 'T00:00:00').getTime()) / 86400000) : null;
-  const stale = days !== null && days >= 4;
+  /* 木讯网日报只在工作日发，周末与节假日不出；阈值定 6 天，
+     这样周五查过、周一早上打开不会误报「过期」。 */
+  const stale = days !== null && days >= 6;
   el.className = 'pxu' + (stale ? ' warn' : '');
-  el.innerHTML = '上次更新：<b>' + esc(dFull(m.at) || '—') + '</b> 的报价（' + esc(when) + ' 获取'
-    + (m.src ? '，来源 ' + esc(m.src) : '') + '）'
+  el.innerHTML = '上次更新：<b>' + esc(dFull(m.at) || '—') + '</b> 的报价'
+    + (m.srcAt && dFull(m.srcAt) !== dFull(m.at) ? ' · ' + esc(dShort(m.srcAt)) + ' 日报' : '')
+    + ' · ' + esc(when) + ' 获取' + (m.src ? '，来源 ' + esc(m.src) : '')
     + (stale ? '<br>已经是 ' + days + ' 天前的价，建议用「粘贴日报更新」贴一份最新日报。' : '');
 }
 
